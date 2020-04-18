@@ -1,21 +1,66 @@
 /**index.wxss**/
-.userinfo {
+.container0 {
+  height: 100%;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
 }
 
-.userinfo-avatar {
-  width: 128rpx;
-  height: 128rpx;
-  margin: 20rpx;
-  border-radius: 50%;
+.description {
+  margin-top: 25%;
 }
 
-.userinfo-nickname {
-  color: #aaa;
+.device {
+  background: -webkit-linear-gradient(left, #edab00, #fd1b2d);
+  height: 200rpx;
+  color: white;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 20rpx;
+  border-radius: 12rpx;
+  padding: 20rpx;
 }
 
-.usermotto {
-  margin-top: 200px;
+.device:last-child {
+  margin-bottom: 0;
+}
+
+.device_hover {
+  background: -webkit-linear-gradient(left, #ee9800, #dc0027);
+}
+
+.deviceLogo {
+  margin-left: 80rpx;
+  margin-right: 20rpx;
+  width: 80rpx;
+  height: 80rpx;
+}
+
+.deviceDescription {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  margin-left: 20rpx;
+}
+
+.deviceId {
+  max-width: 100%;
+  font-size: 28rpx;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rssi {
+  font-size: 28rpx;
+}
+
+.rssi::before {
+  content: "RSSI: ";
+}
+
+.deviceName::before {
+  content: '名称：';
 }

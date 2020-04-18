@@ -1,3 +1,6 @@
 {
-  "usingComponents": {}
+  "usingComponents": {
+    "lottie": "../../components/lottie/lottie"
+  },
+  "enablePullDownRefresh": true
 }

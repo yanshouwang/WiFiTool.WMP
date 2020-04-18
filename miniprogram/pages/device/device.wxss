@@ -1,0 +1,86 @@
+/* pages/device/device.wxss */
+.container {
+  padding: 40rpx;
+}
+
+.adapter {
+  max-height: calc(50% - 100rpx);
+  color: white;
+  font-family: 'Nanum Gothic Coding', monospace;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 20rpx;
+  border-radius: 20rpx;
+  margin-bottom: 40rpx;
+}
+
+.adapter:last-child {
+  margin-bottom: 0;
+}
+
+.linearblue {
+  background: -webkit-linear-gradient(left, #35a1ff, #1370dc);
+}
+
+.linearorange {
+  background: -webkit-linear-gradient(left, #ffc106, #ff8f00);
+}
+
+.hover_linearblue {
+  background: -webkit-linear-gradient(left, #0090ff, #145fca);
+}
+
+.hover_linearorange {
+  background: -webkit-linear-gradient(left, #ffb300, #ff6e00);
+}
+
+.header {
+  text-align: center;
+}
+
+.content {
+  position: relative;
+}
+
+.connected {
+  display: flex;
+  flex-direction: column;
+}
+
+.disconnected {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: rgba(0, 0, 0, .5);
+  font-size: 14px;
+}
+
+.disconnected_image {
+  height: 50%;
+}
+
+.ssid::before {
+  content: "SSID: ";
+}
+
+.address::before {
+  content: "IP: ";
+}
+
+.mask::before {
+  content: "子网掩码: ";
+}
+
+.gateway::before {
+  content: "网关: ";
+}
+
+.dns1::before {
+  content: "首选 DNS: ";
+}
+
+.dns2::before {
+  content: "备用 DNS: ";
+}

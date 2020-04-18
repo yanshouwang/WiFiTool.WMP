@@ -1,0 +1,10 @@
+{
+  "usingComponents": {
+    "weui-form": "../../miniprogram_npm/weui-miniprogram/form/form",
+    "weui-cells": "../../miniprogram_npm/weui-miniprogram/cells/cells",
+    "weui-cell": "../../miniprogram_npm/weui-miniprogram/cell/cell",
+    "reveal": "../../components/reveal/reveal"
+  },
+  "navigationBarTitleText": "网络连接",
+  "backgroundColor": "#eeeeee"
+}

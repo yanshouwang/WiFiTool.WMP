@@ -1,13 +1,16 @@
 <!--index.wxml-->
-<view class="container">
-  <view class="userinfo">
-    <button wx:if="{{!hasUserInfo && canIUse}}" open-type="getUserInfo" bindgetuserinfo="getUserInfo"> 获取头像昵称 </button>
-    <block wx:else>
-      <image bindtap="bindViewTap" class="userinfo-avatar" src="{{userInfo.avatarUrl}}" mode="cover"></image>
-      <text class="userinfo-nickname">{{userInfo.nickName}}</text>
-    </block>
-  </view>
-  <view class="usermotto">
-    <text class="user-motto">{{motto}}</text>
-  </view>
+<view wx:if="{{!available}}" class="container0">
+</view>
+<view wx:elif="{{devices.length === 0}}" class="container0">
+	<lottie id="lottie"></lottie>
+	<text class="description">正在搜索设备...</text>
+</view>
+<view wx:else class="container">
+	<view class="device" hover-class="device_hover" wx:for='{{devices}}' wx:key="deviceId" id="{{index}}" bindtap="onTapDevice">
+		<image class="deviceLogo" src="../../images/device.svg"></image>
+		<view class="deviceDescription">
+			<text class="deviceName">{{item.localName || item.name}}</text>
+			<text class="rssi">{{item.RSSI}}</text>
+		</view>
+	</view>
 </view>

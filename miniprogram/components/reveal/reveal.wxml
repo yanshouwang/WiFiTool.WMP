@@ -1,0 +1,7 @@
+<view class="wrapper">
+	<view class="header" bindtap="onTap">
+		<text class="title">{{title}}</text>
+		<image class="arrow" src="{{hide?'../../images/arrow_up.svg':'../../images/arrow_down.svg'}}"></image>
+	</view>
+	<slot wx:if="{{!hide}}" class="content"></slot>
+</view>

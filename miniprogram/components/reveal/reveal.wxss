@@ -1,0 +1,26 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  align-self: flex-end;
+  margin:20rpx 0;
+}
+
+.title {
+  margin-left: 16px;
+  color: rgba(0, 0, 0, .5);
+  font-size: 14px
+}
+
+.arrow {
+  width: 32rpx;
+  height: 32rpx;
+  margin-left: 20rpx;
+  margin-right: 40rpx;
+}

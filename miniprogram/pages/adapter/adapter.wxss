@@ -1,0 +1,29 @@
+/* pages/adapter/adapter.wxss */
+page {
+  background-color: #eeeeee;
+}
+
+.container {
+  padding: 0;
+}
+
+.header {
+  margin-left: 16px;
+  color: rgba(0, 0, 0, .5);
+  font-size: 14px
+}
+
+.section {
+  margin-top: 20rpx;
+}
+
+.submit {
+  margin: 40rpx 0;
+  border-radius: 40rpx;
+}
+
+.modifier {
+  display: flex;
+  flex-direction: column;
+  padding: 20rpx 0;
+}

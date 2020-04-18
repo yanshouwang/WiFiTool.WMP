@@ -1,12 +1,21 @@
 {
+  "permission": {
+    "scope.userLocation": {
+      "desc": "允许使用位置信息以获取 WiFi 列表"
+    }
+  },
   "pages": [
+    "pages/adapter/adapter",
+    "pages/wifi/wifi",
+    "pages/device/device",
     "pages/index/index",
     "pages/logs/logs"
   ],
   "window": {
-    "backgroundTextStyle": "light",
+    "backgroundColor": "#fff",
+    "backgroundTextStyle": "dark",
     "navigationBarBackgroundColor": "#fff",
-    "navigationBarTitleText": "WeChat",
+    "navigationBarTitleText": "网卡配置助手",
     "navigationBarTextStyle": "black"
   },
   "style": "v2",
