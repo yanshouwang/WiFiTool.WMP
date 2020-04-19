@@ -6,9 +6,9 @@
   },
   "pages": [
     "pages/adapter/adapter",
-    "pages/wifi/wifi",
     "pages/device/device",
     "pages/index/index",
+    "pages/wifi/wifi",
     "pages/logs/logs"
   ],
   "window": {

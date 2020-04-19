@@ -113,7 +113,7 @@ Page({
   onTapSSID() {
     const option1: WechatMiniprogram.GetSystemInfoOption = {
       success: res => {
-        console.log(`获取系统信息成功：${res}`);
+        console.log(`获取系统信息成功：${JSON.stringify(res)}`);
 
         // iOS 需要提示用户跳转系统设置界面
         if (res.platform === "ios") {
@@ -149,8 +149,12 @@ Page({
     this.setData(data);
   },
 
-  onDNSModeChange() {
-
+  onDNSModeChange(e: Record<string, any>) {
+    const number = e.detail.value;
+    const mode = this.data.modes[number];
+    const data: Record<string, any> = {};
+    data["dns.mode"] = mode;
+    this.setData(data);
   },
 
   navigateToWiFi() {

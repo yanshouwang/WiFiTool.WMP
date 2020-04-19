@@ -26,7 +26,7 @@ let hide = false;
 
 Page({
   data: {
-    available: false,
+    available: true,
     discovering: false,
     devices: obj
   },
