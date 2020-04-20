@@ -4,14 +4,12 @@ import decodeUtf8 = require("decode-utf8");
 const serviceId: string = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
 const notifyCharacteristicId: string = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
 const writeCharacteristicId: string = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
-const getStatusCmd: string = "GET STUTAS";
+const getAdaptersCmd: string = "GET ADAPTERS";
+const getStatusCmd: string = "GET STATUS";
 const modifyCmd: string = "MODIFY";
 const keepAliveCmd: string = "KEEP ALIVE";
 
 const endSymbol = "\r\n";
-
-const ethernet = "ethernet";
-const wifi = "wifi";
 
 const obj1: WechatMiniprogram.CallbackResultBlueToothDevice = {
   advertisData: new ArrayBuffer(0),
@@ -22,6 +20,7 @@ const obj1: WechatMiniprogram.CallbackResultBlueToothDevice = {
   name: "",
   localName: ""
 };
+const obj2: { type: string, name: string, state: number, ssid: string, ip: { mode: "auto" | "manual", address: string, mask: string, gateway: string }, dns: { mode: "auto" | "manual", values: string[] } }[] = [];
 
 let intervalID = -1;
 let hide = false;
@@ -33,17 +32,8 @@ Page({
    */
   data: {
     device: obj1,
-    connected: true,
-    adapters: [
-      {
-        type: ethernet,
-        connected: false
-      },
-      {
-        type: wifi,
-        connected: false
-      }
-    ]
+    connected: false,
+    adapters: obj2
   },
 
   /**
@@ -55,8 +45,8 @@ Page({
     wx.onBLEConnectionStateChange(res => this.onConnectionStateChange(res));
     wx.onBLECharacteristicValueChange(res => this.onCharacteristicValueChange(res));
 
-    const eventChannel = this.getOpenerEventChannel();
-    eventChannel.on("device", (device: WechatMiniprogram.CallbackResultBlueToothDevice) => this.onLoadDevice(device));
+    const channel = this.getOpenerEventChannel();
+    channel.on("device", device => this.onLoadDevice(device));
   },
 
   /**
@@ -163,7 +153,7 @@ Page({
                 state: true,
                 success: () => {
                   this.keepAlive();
-                  this.getStatus();
+                  this.getAdapters();
                 },
                 fail: res => console.log(`打开通知失败： ${res.errCode} - ${res.errMsg}`)
               };
@@ -186,6 +176,8 @@ Page({
     }
   },
 
+  buffer: new ArrayBuffer(0),
+
   onCharacteristicValueChange(res: WechatMiniprogram.OnBLECharacteristicValueChangeCallbackResult) {
     console.log("特征值改变");
 
@@ -193,44 +185,84 @@ Page({
     if (res.deviceId !== device.deviceId || res.serviceId !== serviceId || res.characteristicId !== notifyCharacteristicId) {
       return;
     }
-    let str: string = decodeUtf8(res.value).trim();
+
+    if (this.buffer.byteLength === 0) {
+      this.buffer = res.value;
+    } else {
+      // 合并 ArrayBuffer
+      const olderArray = new Uint8Array(this.buffer);
+      const resArray = new Uint8Array(res.value);
+      const newerArray = new Uint8Array(olderArray.length + resArray.length);
+      newerArray.set(olderArray);
+      newerArray.set(resArray, olderArray.length);
+      this.buffer = newerArray.buffer;
+      // const resView = new DataView(res.value);
+      // const olderView = new DataView(this.buffer);
+      // const buffer = new ArrayBuffer(this.buffer.byteLength + res.value.byteLength);
+      // const newerView = new DataView(buffer);
+      // for (let i = 0; i < olderView.byteLength; i++) {
+      //   const item = olderView.getUint8(i);
+      //   newerView.setUint8(i, item);
+      // }
+      // for (let i = 0; i < resView.byteLength; i++) {
+      //   const item = resView.getUint8(i);
+      //   newerView.setUint8(olderView.byteLength + i, item);
+      // }
+      // this.buffer = newerView.buffer;
+    }
+
+    // 是否以 \r\n 结尾
+    if (this.buffer.byteLength < 2) {
+      return;
+    }
+    const array = new Uint8Array(this.buffer);
+    const code1 = array[array.length - 2];
+    const code2 = array[array.length - 1];;
+    if (code1 !== 13 || code2 !== 10) {
+      return;
+    }
+    let str: string = decodeUtf8(this.buffer).trim();
     console.log(str);
 
+    this.dealWithStr(str);
+    this.buffer = new ArrayBuffer(0);
+  },
+
+  dealWithStr(str: string) {
     const value: { [str: string]: any, cmd: string, errCode: number } = JSON.parse(str);
     const cmd = value.cmd;
     switch (cmd) {
-      case getStatusCmd:
-      case modifyCmd: {
-        const obj = {
-          ssid: value.ssid,
-          address: value.address,
-          mask: value.mask,
-          gateway: value.gateway,
-          dns: value.dns
-        };
-        const data: Record<string, any> = {};
-        switch (value.mode) {
-          case "ethernet": {
-            data["ethernet"] = obj;
-            data["wifi"] = {};
-            break;
+      case getAdaptersCmd: {
+        const adapters: [{ type: string, name: string }] = value.adapters;
+        const data: Record<string, any> = { adapters: adapters };
+        this.setData(data);
+        const names = adapters.map(i => i.name);
+        this.getStatus(names);
+        break;
+      }
+      case getStatusCmd: {
+        const status: { name: string, state: number, ssid: string, ip: { mode: "auto" | "manual", address: string, mask: string, gateway: string }, dns: { mode: "auto" | "manual", values: string[] } }[] = value.status;
+        const adapters = this.data.adapters;
+        status.forEach(item => {
+          for (let i = 0; i < adapters.length; i++) {
+            const adapter = adapters[i];
+            if (adapter.name === item.name) {
+              console.log(`找到 ${adapter.name}`);
+
+              adapter.state = item.state;
+              adapter.ssid = item.ssid;
+              adapter.ip = item.ip;
+              adapter.dns = item.dns;
+              break;
+            }
           }
-          case "wifi": {
-            data["ethernet"] = {};
-            data["wifi"] = obj;
-            break;
-          }
-          case "none": {
-            data["ethernet"] = {};
-            data["ethernet"] = {};
-            break;
-          }
-          default: {
-            break;
-          }
-        }
+        });
+        const data: Record<string, any> = { adapters: adapters };
         this.setData(data);
         wx.hideLoading();
+        break;
+      }
+      case modifyCmd: {
         break;
       }
       default: {
@@ -315,9 +347,18 @@ Page({
     intervalID = setInterval(() => this.write(str), 20 * 1000);
   },
 
-  getStatus() {
+  getAdapters() {
     const value = {
-      cmd: getStatusCmd
+      cmd: getAdaptersCmd
+    };
+    const str = JSON.stringify(value);
+    this.write(str);
+  },
+
+  getStatus(names: string[]) {
+    const value = {
+      cmd: getStatusCmd,
+      names: names
     };
     const str = JSON.stringify(value);
     this.write(str);

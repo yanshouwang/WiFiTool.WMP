@@ -14,25 +14,29 @@
 				<picker range="{{modes}}" bindchange="onIPModeChange">
 					<view class="weui-input">{{ip.mode}}</view>
 				</picker>
-				<!-- <input class="weui-input" data-key="address" placeholder="IP" bindinput="onValuesChange" value="{{formValues.address}}" /> -->
 			</weui-cell>
-			<!-- <weui-cell title="子网掩码">
-					<input class="weui-input" data-key="mask" placeholder="子网掩码" bindinput="onValuesChange" value="{{formValues.mask}}" />
-				</weui-cell>
-				<weui-cell title="网关">
-					<input class="weui-input" data-key="gateway" placeholder="网关" bindinput="onValuesChange" value="{{formValues.gateway}}" />
-				</weui-cell> -->
+			<weui-cell wx:if="{{ip.mode==='手动'}}" title="IP">
+				<input class="weui-input" data-key="address" placeholder="IP" bindinput="onValuesChange" value="{{ip.address}}" />
+			</weui-cell>
+			<weui-cell wx:if="{{ip.mode==='手动'}}" title="子网掩码">
+				<input class="weui-input" data-key="mask" placeholder="子网掩码" bindinput="onValuesChange" value="{{ip.mask}}" />
+			</weui-cell>
+			<weui-cell wx:if="{{ip.mode==='手动'}}" title="网关">
+				<input class="weui-input" data-key="gateway" placeholder="网关" bindinput="onValuesChange" value="{{ip.gateway}}" />
+			</weui-cell>
 		</weui-cells>
 		<weui-cells title="DNS">
 			<weui-cell class="weui-cell_select" title="配置 DNS">
 				<picker range="{{modes}}" bindchange="onDNSModeChange">
 					<view class="weui-input">{{dns.mode}}</view>
 				</picker>
-				<!-- <input class="weui-input" data-key="dns1" placeholder="首选 DNS" bindinput="onValuesChange" value="{{formValues.dns1}}" /> -->
 			</weui-cell>
-			<!-- <weui-cell title="备用 DNS">
-					<input class="weui-input" data-key="dns2" placeholder="备用 DNS" bindinput="onValuesChange" value="{{formValues.dns2}}" />
-				</weui-cell> -->
+			<weui-cell wx:if="{{dns.mode==='手动'}}" title="首选 DNS">
+				<input class="weui-input" data-key="dns1" placeholder="首选 DNS" bindinput="onValuesChange" value="{{dns.dns1}}" />
+			</weui-cell>
+			<weui-cell wx:if="{{dns.mode==='手动'}}" title="备用 DNS">
+				<input class="weui-input" data-key="dns2" placeholder="备用 DNS" bindinput="onValuesChange" value="{{dns.dns2}}" />
+			</weui-cell>
 		</weui-cells>
 		<button class="submit" type="primary" style="width:calc(100% - 80rpx);height:80rpx;min-height:80rpx" bindtap="onSubmit">配置</button>
 	</weui-form>

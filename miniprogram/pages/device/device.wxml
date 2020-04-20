@@ -1,19 +1,19 @@
 <!--pages/device/device.wxml-->
 <view class="container">
-	<view class="{{item.type==='ethernet'?'adapter linearblue':'adapter linearorange'}}" hover-class="{{item.type=='ethernet'?'hover_linearblue':'hover_linearorange'}}" wx:for="{{adapters}}" wx:key="type" id="{{index}}" bindtap="onTapAdapter">
+	<view wx:for="{{adapters}}" wx:key="name" class="{{item.type==='ethernet'?'adapter linearblue':'adapter linearorange'}}" hover-class="{{item.type=='ethernet'?'hover_linearblue':'hover_linearorange'}}" id="{{index}}" bindtap="onTapAdapter">
 		<view class="stack_container header">
-			<text class="{{item.connected?'invisible title':'title'}}">{{item.type==="ethernet"?"有线网络连接":"无线网络连接"}}</text>
-			<text class="{{item.connected?'stack_item title':'stack_item title invisible'}}">{{item.ssid}}</text>
+			<text class="{{item.state===100?'invisible title':'title'}}">{{item.type==="ethernet"?"有线网络连接":"无线网络连接"}}</text>
+			<text class="{{item.state===100?'stack_item title':'stack_item title invisible'}}">{{item.ssid}}</text>
 		</view>
 		<view class="stack_container content">
-			<view class="{{item.connected?'connected':'connected invisible'}}">
-				<text class="address">{{item.address}}</text>
-				<text class="mask">{{item.mask}}</text>
-				<text class="gateway">{{item.gateway}}</text>
-				<text class="dns1">{{item.dns1}}</text>
-				<text class="dns2">{{item.dns2}}</text>
+			<view class="{{item.state===100?'connected':'connected invisible'}}">
+				<text class="address">{{item.ip.address}}</text>
+				<text class="mask">{{item.ip.mask}}</text>
+				<text class="gateway">{{item.ip.gateway}}</text>
+				<text class="dns1">{{item.dns.values[0]}}</text>
+				<text class="dns2">{{item.dns.values[1]}}</text>
 			</view>
-			<view class="{{item.connected?'stack_item disconnected invisible':'stack_item disconnected'}}">
+			<view class="{{item.state===100?'stack_item disconnected invisible':'stack_item disconnected'}}">
 				<image class="disconnected_image" src="{{item.type=='ethernet'?'../../images/no_ethernet.svg':'../../images/no_wifi.svg'}}"></image>
 				<text>{{item.type==="ethernet"?"网线被拔出":"未连接，点击配置"}}</text>
 			</view>

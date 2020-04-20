@@ -1,1 +1,8 @@
 /* pages/wifi/wifi.wxss */
+page {
+  background-color: #eeeeee;
+}
+
+.container {
+  padding: 0;
+}

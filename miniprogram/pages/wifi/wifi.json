@@ -1,3 +1,9 @@
 {
-  "usingComponents": {}
+  "usingComponents": {
+    "weui-cells": "../../miniprogram_npm/weui-miniprogram/cells/cells",
+    "weui-checkbox-group": "../../miniprogram_npm/weui-miniprogram/checkbox-group/checkbox-group",
+    "weui-checkbox": "../../miniprogram_npm/weui-miniprogram/checkbox/checkbox"
+  },
+  "navigationBarTitleText": "WiFi",
+  "backgroundColor": "#eeeeee"
 }
