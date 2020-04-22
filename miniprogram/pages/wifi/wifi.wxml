@@ -1,8 +1,8 @@
 <!--pages/wifi/wifi.wxml-->
 <view class="container">
 	<weui-cells title="选择网络">
-		<weui-checkbox-group multi="{{false}}">
-			<weui-checkbox wx:for="{{wifis}}" wx:key="SSID" label="{{item.SSID}}" checked="{{item.SSID===wifi.SSID}}" />
+		<weui-checkbox-group multi="{{false}}" bindchange="onWiFiChange">
+			<weui-checkbox wx:for="{{wifis}}" wx:key="SSID" label="{{item.SSID}}" value="{{index}}" checked="{{item.SSID===ssid}}" />
 		</weui-checkbox-group>
 	</weui-cells>
 </view>

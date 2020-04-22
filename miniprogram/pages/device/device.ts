@@ -1,17 +1,15 @@
 import encodeUtf8 = require("encode-utf8");
 import decodeUtf8 = require("decode-utf8");
+import { Adapter, Modify, Type, Mode } from "../../models/nic";
+import { Ask, Answer, Command } from "../../models/command";
 
 const serviceId: string = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
 const notifyCharacteristicId: string = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
 const writeCharacteristicId: string = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
-const getAdaptersCmd: string = "GET ADAPTERS";
-const getStatusCmd: string = "GET STATUS";
-const modifyCmd: string = "MODIFY";
-const keepAliveCmd: string = "KEEP ALIVE";
 
 const endSymbol = "\r\n";
 
-const obj1: WechatMiniprogram.CallbackResultBlueToothDevice = {
+const device: WechatMiniprogram.CallbackResultBlueToothDevice = {
   advertisData: new ArrayBuffer(0),
   advertisServiceUUIDs: [],
   serviceData: [],
@@ -20,7 +18,22 @@ const obj1: WechatMiniprogram.CallbackResultBlueToothDevice = {
   name: "",
   localName: ""
 };
-const obj2: { type: string, name: string, state: number, ssid: string, ip: { mode: "auto" | "manual", address: string, mask: string, gateway: string }, dns: { mode: "auto" | "manual", values: string[] } }[] = [];
+const adapters: Adapter[] = [];
+const modify: Modify = {
+  name: "",
+  ssid: "",
+  password: "",
+  ip: {
+    mode: Mode.Auto,
+    address: "",
+    mask: "",
+    gateway: ""
+  },
+  dns: {
+    mode: Mode.Auto,
+    values: []
+  }
+};
 
 let intervalID = -1;
 let hide = false;
@@ -31,9 +44,10 @@ Page({
    * 页面的初始数据
    */
   data: {
-    device: obj1,
+    device: device,
     connected: false,
-    adapters: obj2
+    adapters: adapters,
+    modify: modify
   },
 
   /**
@@ -66,6 +80,8 @@ Page({
     hide = false;
     if (!this.data.connected) {
       this.connect();
+    } else if (this.data.modify.name !== "") {
+      this.modify();
     }
   },
 
@@ -88,11 +104,16 @@ Page({
     this.disconnect();
   },
 
+  refreshing: false,
+
   /**
    * 页面相关事件处理函数--监听用户下拉动作
    */
   onPullDownRefresh() {
-
+    const data = { adapters: [] };
+    this.setData(data);
+    this.getAdapters();
+    this.refreshing = true;
   },
 
   /**
@@ -116,13 +137,22 @@ Page({
     this.connect();
   },
 
-  onTapAdapter(e: any) {
-    const device = this.data.device;
-    const i = e.currentTarget.id;
-    const adapter = this.data.adapters[i];
+  onTapAdapter(e: Record<string, any>) {
+    const number = e.currentTarget.id;
+    const adapter = this.data.adapters[number];
+    // 有线网络未连接时不允许修改
+    if (adapter.type === Type.Ethernet && adapter.state !== 100) {
+      return;
+    }
     const option: WechatMiniprogram.NavigateToOption = {
       url: "../adapter/adapter",
-      success: res => res.eventChannel.emit("adapter", device, adapter)
+      success: res => {
+        console.log("device.onTapAdapter: 成功");
+
+        const channel = res.eventChannel;
+        channel.emit("adapter", adapter);
+      },
+      fail: res => console.log(`device.onTapAdapter: 失败 - ${res.errMsg}`)
     };
     wx.navigateTo(option);
   },
@@ -153,7 +183,11 @@ Page({
                 state: true,
                 success: () => {
                   this.keepAlive();
-                  this.getAdapters();
+                  if (this.data.adapters.length === 0) {
+                    this.getAdapters();
+                  } else if (this.data.modify.name !== "") {
+                    this.modify();
+                  }
                 },
                 fail: res => console.log(`打开通知失败： ${res.errCode} - ${res.errMsg}`)
               };
@@ -222,26 +256,33 @@ Page({
       return;
     }
     let str: string = decodeUtf8(this.buffer).trim();
-    console.log(str);
-
     this.dealWithStr(str);
     this.buffer = new ArrayBuffer(0);
   },
 
   dealWithStr(str: string) {
-    const value: { [str: string]: any, cmd: string, errCode: number } = JSON.parse(str);
-    const cmd = value.cmd;
+    console.log(`device.dealWithStr: ${str}`);
+
+    this.hideLoading();
+    const answer: Answer = JSON.parse(str);
+    if (answer.errCode !== 0) {
+      if (this.refreshing) {
+        wx.stopPullDownRefresh();
+      }
+      return;
+    }
+    const cmd = answer.cmd;
     switch (cmd) {
-      case getAdaptersCmd: {
-        const adapters: [{ type: string, name: string }] = value.adapters;
-        const data: Record<string, any> = { adapters: adapters };
+      case Command.GetAdapters: {
+        const adapters = (<Adapter[]>answer.adapters).sort((a1, a2) => a1.name.localeCompare(a2.name));
+        const data = { adapters: adapters };
         this.setData(data);
         const names = adapters.map(i => i.name);
         this.getStatus(names);
         break;
       }
-      case getStatusCmd: {
-        const status: { name: string, state: number, ssid: string, ip: { mode: "auto" | "manual", address: string, mask: string, gateway: string }, dns: { mode: "auto" | "manual", values: string[] } }[] = value.status;
+      case Command.GetStatus: {
+        const status: { name: string, state: number, ssid: string, ip: { mode: Mode, address: string, mask: string, gateway: string }, dns: { mode: Mode, values: string[] } }[] = answer.status;
         const adapters = this.data.adapters;
         status.forEach(item => {
           for (let i = 0; i < adapters.length; i++) {
@@ -259,10 +300,14 @@ Page({
         });
         const data: Record<string, any> = { adapters: adapters };
         this.setData(data);
-        wx.hideLoading();
+        if (this.refreshing) {
+          wx.stopPullDownRefresh();
+        }
         break;
       }
-      case modifyCmd: {
+      case Command.Modify: {
+        const names = [answer.name];
+        this.getStatus(names);
         break;
       }
       default: {
@@ -296,36 +341,29 @@ Page({
   },
 
   connect() {
-    const connected = this.data.connected;
-    if (connected) {
-      return;
-    }
     const device = this.data.device;
     const option: WechatMiniprogram.CreateBLEConnectionOption = {
       deviceId: device.deviceId,
-      success: () => console.log(`连接成功`),
-      fail: res => console.log(`连接失败：${res.errCode} - ${res.errMsg}`)
+      success: res => console.log(`device.connect 成功：${res.errCode} - ${res.errMsg}`),
+      fail: res => console.log(`device.connect 失败：${res.errCode} - ${res.errMsg}`),
+      complete: () => this.hideLoading()
     };
     wx.createBLEConnection(option);
     this.showLoading("正在连接");
   },
 
   disconnect() {
-    const connected = this.data.connected;
-    if (!connected) {
-      return;
-    }
     const device = this.data.device;
     const option: WechatMiniprogram.CloseBLEConnectionOption = {
       deviceId: device.deviceId,
-      success: () => console.log(`断开成功`),
-      fail: res => console.log(`断开失败：${res.errCode} - ${res.errMsg}`)
+      success: res => console.log(`device.disconnect 成功：${res.errCode} - ${res.errMsg}`),
+      fail: res => console.log(`device.disconnect 失败：${res.errCode} - ${res.errMsg}`)
     };
     wx.closeBLEConnection(option);
   },
 
-  write(str: string) {
-    str = `${str}${endSymbol}`;
+  write(ask: Ask) {
+    const str = `${JSON.stringify(ask)}${endSymbol}`;
     const device = this.data.device;
     const value = encodeUtf8(str);
     const option2: WechatMiniprogram.WriteBLECharacteristicValueOption = {
@@ -340,51 +378,59 @@ Page({
   },
 
   keepAlive() {
-    const value = {
-      cmd: keepAliveCmd
+    const ask: Ask = {
+      cmd: Command.KeepAlive
     };
-    const str = JSON.stringify(value);
-    intervalID = setInterval(() => this.write(str), 20 * 1000);
+    intervalID = setInterval(() => this.write(ask), 20 * 1000);
   },
 
   getAdapters() {
-    const value = {
-      cmd: getAdaptersCmd
+    const ask: Ask = {
+      cmd: Command.GetAdapters
     };
-    const str = JSON.stringify(value);
-    this.write(str);
+    this.write(ask);
+    this.showLoading("正在获取适配器列表");
   },
 
   getStatus(names: string[]) {
-    const value = {
-      cmd: getStatusCmd,
+    const ask: Ask = {
+      cmd: Command.GetStatus,
       names: names
     };
-    const str = JSON.stringify(value);
-    this.write(str);
+    this.write(ask);
+    this.showLoading("正在获取适配器状态");
   },
 
-  modify(mode: "ethernet" | "wifi", address: string, mask: string, gateway: string, dns: string[], ssid?: string, password?: string) {
-    const value = {
-      cmd: modifyCmd,
-      mode: mode,
-      ssid: ssid,
-      password: password,
-      address: address,
-      mask: mask,
-      gateway: gateway,
-      dns: dns
+  modify() {
+    const ask: Ask = {
+      cmd: Command.Modify,
+      name: this.data.modify.name,
+      ssid: this.data.modify.ssid,
+      password: this.data.modify.password,
+      ip: this.data.modify.ip,
+      dns: this.data.modify.dns
     };
-    const str = JSON.stringify(value);
-    this.write(str);
-    this.showLoading("正在配置网络");
+    this.write(ask);
+    const data = { modify: modify };
+    this.setData(data);
+    this.showLoading("正在配置网络连接");
   },
 
   showLoading(title: string) {
     const option: WechatMiniprogram.ShowLoadingOption = {
       title: title,
-      mask: true
+      mask: true,
+      success: res => console.log(`device.showLoading 成功：${res.errMsg}`),
+      fail: res => console.log(`device.showLoading 失败：${res.errMsg}`)
     };
     wx.showLoading(option);
+  },
+
+  hideLoading() {
+    const option: WechatMiniprogram.HideLoadingOption = {
+      success: res => console.log(`device.hideLoading 成功：${res.errMsg}`),
+      fail: res => console.log(`device.hideLoading 失败：${res.errMsg}`)
+    };
+    wx.hideLoading(option);
   }
 });

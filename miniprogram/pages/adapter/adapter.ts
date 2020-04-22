@@ -1,12 +1,20 @@
-const aobj1: WechatMiniprogram.WifiInfo = {
-  BSSID: "",
-  SSID: "",
-  secure: false,
-  signalStrength: 0
-};
+import { Adapter, Mode, Modify, IP, DNS, Type } from "../../models/nic";
 
-const auto = "自动";
-const manual = "手动";
+const modify: Modify = {
+  name: "",
+  ssid: "",
+  password: "",
+  ip: {
+    mode: Mode.Auto,
+    address: "",
+    mask: "",
+    gateway: ""
+  },
+  dns: {
+    mode: Mode.Auto,
+    values: []
+  }
+}
 
 Page({
 
@@ -14,32 +22,50 @@ Page({
    * 页面的初始数据
    */
   data: {
-    device: {},
-    type: "wifi",
-    wifi: aobj1,
-    password: "",
+    type: Type.Ethernet,
+    older: modify,
+    newer: modify,
     modes: [
-      auto,
-      manual
+      "自动",
+      "手动"
     ],
-    ip: {
-      mode: auto,
-      address: "",
-      mask: "",
-      gateway: "",
-    },
-    dns: {
-      mode: auto,
-      values: []
-    }
+    number0: 0,
+    number1: 0
   },
 
   /**
    * 生命周期函数--监听页面加载
    */
   onLoad() {
-    // 打开 WiFi 模块
-    this.startWiFi();
+    const channel = this.getOpenerEventChannel();
+    channel.on("adapter", adapter => this.onLoadAdapter(adapter));
+  },
+
+  onLoadAdapter(adapter: Adapter) {
+    const older: Modify = {
+      name: adapter.name,
+      password: "",
+      ssid: adapter.ssid,
+      ip: adapter.ip,
+      dns: adapter.dns
+    };
+    const newer: Modify = {
+      name: adapter.name,
+      password: "",
+      ssid: adapter.ssid,
+      ip: adapter.ip,
+      dns: adapter.dns
+    };
+    const number0 = adapter.ip.mode === Mode.Auto ? 0 : 1;
+    const number1 = adapter.dns.mode === Mode.Auto ? 0 : 1;
+    const data = {
+      type: adapter.type,
+      older: older,
+      newer: newer,
+      number0: number0,
+      number1: number1
+    };
+    this.setData(data);
   },
 
   /**
@@ -67,8 +93,7 @@ Page({
    * 生命周期函数--监听页面卸载
    */
   onUnload() {
-    // 关闭 WiFi 模块
-    this.stopWiFi();
+
   },
 
   /**
@@ -94,41 +119,47 @@ Page({
   },
 
   onTapSSID() {
-    const option1: WechatMiniprogram.GetSystemInfoOption = {
+    const ssid = this.data.newer.ssid;
+    const option: WechatMiniprogram.NavigateToOption = {
+      url: "../wifi/wifi",
       success: res => {
-        console.log(`获取系统信息成功：${JSON.stringify(res)}`);
+        console.log("跳转 WiFi 页面成功");
 
-        // iOS 需要提示用户跳转系统设置界面
-        if (res.platform === "ios") {
-          const option2: WechatMiniprogram.ShowModalOption = {
-            title: "提示",
-            content: "由于系统限制，iOS 用户请手动进入系统 WiFi 页面，当列表中出现目标 WiFi 时再返回小程序。",
-            showCancel: false,
-            success: res => {
-              console.log("提示框弹出成功");
-
-              if (res.confirm) {
-                this.navigateToWiFi();
-              }
-            },
-            fail: res => console.log(`提示窗弹出失败：${res.errMsg}`)
-          };
-          wx.showModal(option2);
-        } else {
-          this.navigateToWiFi();
-        }
+        const channel = res.eventChannel;
+        channel.emit("ssid", ssid);
       },
-      fail: res => console.log(`获取系统信息失败：${res.errMsg}`)
+      fail: res => console.log(`跳转 WiFi 页面失败：${res.errMsg}`)
     };
-    wx.getSystemInfo(option1);
-    //this.getWiFiList();
+    wx.navigateTo(option);
+  },
+
+  onSSIDChange(ssid: string) {
+    const data: Record<string, any> = {};
+    data["newer.ssid"] = ssid;
+    this.setData(data);
+  },
+
+  onValuesChange(e: Record<string, any>) {
+    const key = e.currentTarget.dataset.key;
+    const value = e.detail.value;
+    const data: Record<string, any> = {};
+    data[`newer.${key}`] = value;
+    this.setData(data);
   },
 
   onIPModeChange(e: Record<string, any>) {
     const number = e.detail.value;
     const mode = this.data.modes[number];
     const data: Record<string, any> = {};
-    data["ip.mode"] = mode;
+    data["newer.ip.mode"] = mode === "自动" ? Mode.Auto : Mode.Manual;
+    this.setData(data);
+  },
+
+  onIPValuesChange(e: Record<string, any>) {
+    const key = e.currentTarget.dataset.key;
+    const value = e.detail.value;
+    const data: Record<string, any> = {};
+    data[`newer.ip.${key}`] = value;
     this.setData(data);
   },
 
@@ -136,85 +167,74 @@ Page({
     const number = e.detail.value;
     const mode = this.data.modes[number];
     const data: Record<string, any> = {};
-    data["dns.mode"] = mode;
+    data["newer.dns.mode"] = mode === "自动" ? Mode.Auto : Mode.Manual;
     this.setData(data);
   },
 
-  startWiFi() {
-    const option: WechatMiniprogram.StartWifiOption = {
-      success: () => {
-        console.log("打开 WiFi 模块成功");
-
-        this.getConnectedWiFi();
-      },
-      fail: res => console.log(`打开 WiFi 模块失败：${res.errCode} - ${res.errMsg}`)
-    };
-    wx.startWifi(option);
-  },
-
-  stopWiFi() {
-    const option: WechatMiniprogram.StopWifiOption = {
-      success: () => console.log("关闭 WiFi 模块成功"),
-      fail: res => console.log(`关闭 WiFi 模块失败：${res.errCode} - ${res.errMsg}`)
-    };
-    wx.stopWifi(option);
-  },
-
-  getConnectedWiFi() {
-    const option: WechatMiniprogram.GetConnectedWifiOption = {
-      success: res => {
-        const wifi = res.wifi;
-        console.log(`获取已连接 WiFi 成功: ${JSON.stringify(wifi)}`);
-
-        this.changeWiFi(wifi);
-      },
-      fail: res => console.log(`获取已连接 WiFi 失败: ${res.errCode} - ${res.errMsg}`)
-    };
-    wx.getConnectedWifi(option);
-  },
-
-  navigateToWiFi() {
-    const wifi = this.data.wifi;
-    const option: WechatMiniprogram.NavigateToOption = {
-      url: "../wifi/wifi",
-      success: res => {
-        console.log("跳转 WiFi 页面成功");
-
-        const channel = res.eventChannel;
-        channel.emit("wifi", wifi);
-        channel.on("wifi", wifi => this.changeWiFi(wifi));
-      },
-      fail: res => console.log(`跳转 WiFi 页面失败：${res.errMsg}`)
-    };
-    wx.navigateTo(option);
-  },
-
-  changeWiFi(wifi: WechatMiniprogram.WifiInfo) {
-    const data = { wifi: wifi };
+  onDNSValuesChange(e: Record<string, any>) {
+    const key = e.currentTarget.dataset.key;
+    const value = e.detail.value;
+    const data: Record<string, any> = {};
+    if (key === "dns1") {
+      data["newer.dns.values[0]"] = value;
+    } else {
+      data["newer.dns.values[1]"] = value;
+    }
     this.setData(data);
   },
 
   onSubmit() {
-    // const mode = "";
-    // const address = this.data.address;
-    // const mask = this.data.mask;
-    // const gateway = this.data.ip.gateway;
-    // const dns = this.data.dns.values;
-    // switch (mode) {
-    //   case ethernet: {
-    //     this.modify("ethernet", address, mask, gateway, dns);
-    //     break;
-    //   }
-    //   case wifi: {
-    //     const ssid = this.data.ssid;
-    //     const password = this.data.password;
-    //     this.modify("wifi", address, mask, gateway, dns, ssid, password);
-    //     break;
-    //   }
-    //   default: {
-    //     console.log(`连接模式错误：${mode}`);
-    //     break;
-    //   }
-    // }
+    const changed = this.changed();
+    if (!changed) {
+      return;
+    }
+    const pages = getCurrentPages();
+    const page = pages[pages.length - 2];
+    const ip: IP = this.data.newer.ip.mode === Mode.Auto ? { mode: Mode.Auto, address: "", mask: "", gateway: "" } : this.data.newer.ip;
+    const dns: DNS = this.data.newer.dns.mode == Mode.Auto ? { mode: Mode.Auto, values: [] } : this.data.newer.dns;
+    const modify: Modify = {
+      name: this.data.newer.name,
+      ssid: this.data.newer.ssid,
+      password: this.data.newer.password,
+      ip: ip,
+      dns: dns
+    };
+    const data = { modify: modify };
+    page.setData(data);
+    this.navigateBack();
+  },
+
+  changed(): boolean {
+    const newer = this.data.newer;
+    const older = this.data.older;
+    let changed =
+      newer.name !== older.name ||
+      newer.ssid !== older.ssid ||
+      newer.password !== older.password ||
+      newer.ip.mode !== older.ip.mode ||
+      newer.ip.address !== older.ip.address ||
+      newer.ip.mask !== older.ip.mask ||
+      newer.ip.gateway !== older.ip.gateway ||
+      newer.dns.mode !== older.dns.mode ||
+      newer.dns.values.length !== older.dns.values.length;
+    if (!changed) {
+      for (let i = 0; i < newer.dns.values.length; i++) {
+        const v1 = newer.dns.values[i];
+        const v2 = older.dns.values[i];
+        if (v1 !== v2) {
+          changed = true;
+          break;
+        }
+      }
+    }
+    return changed;
+  },
+
+  navigateBack() {
+    const option: WechatMiniprogram.NavigateBackOption = {
+      success: res => console.log(`adapter.navigateBack 成功：${res.errMsg}`),
+      fail: res => console.log(`adapter.navigateBack 失败： ${res.errMsg}`)
+    };
+    wx.navigateBack(option);
   }
 })

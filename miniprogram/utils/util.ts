@@ -17,3 +17,12 @@ const formatNumber = (n: number) => {
   const s = n.toString()
   return s[1] ? s : '0' + s
 }
+
+export function inArray(arr: string | any[], key: string | number, val: any) {
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i][key] === val) {
+      return i;
+    }
+  }
+  return -1;
+}

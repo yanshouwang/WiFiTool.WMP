@@ -1,14 +1,7 @@
 // index.ts
-const serviceId: string = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
+import { inArray } from "../../utils/util";
 
-function inArray(arr: string | any[], key: string | number, val: any) {
-  for (let i = 0; i < arr.length; i++) {
-    if (arr[i][key] === val) {
-      return i;
-    }
-  }
-  return -1;
-}
+const serviceId: string = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
 
 const obj: WechatMiniprogram.CallbackResultBlueToothDevice[] = [
   // {
@@ -30,12 +23,6 @@ Page({
     discovering: false,
     devices: obj
   },
-
-  // onTest() {
-  //   const data: Record<string, any> = {};
-  //   data["available"] = !this.data.available;
-  //   this.setData(data);
-  // },
 
   onLoad() {
     console.log("index: onLoad");

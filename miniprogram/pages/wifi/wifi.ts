@@ -1,10 +1,4 @@
 const wobj1: WechatMiniprogram.WifiInfo[] = [];
-const wobj2: WechatMiniprogram.WifiInfo = {
-  BSSID: "",
-  SSID: "",
-  secure: false,
-  signalStrength: 0
-};
 
 Page({
 
@@ -13,7 +7,7 @@ Page({
    */
   data: {
     wifis: wobj1,
-    wifi: wobj2
+    ssid: ""
   },
 
   /**
@@ -23,7 +17,10 @@ Page({
     wx.onGetWifiList(res => this.onGetWiFiList(res));
 
     const channel = this.getOpenerEventChannel();
-    channel.once("wifi", wifi => this.onLoadWiFi(wifi));
+    channel.on("ssid", ssid => this.onLoadSSID(ssid));
+
+    // 打开 WiFi 模块
+    this.startWiFi();
   },
 
   /**
@@ -51,7 +48,8 @@ Page({
    * 生命周期函数--监听页面卸载
    */
   onUnload() {
-
+    // 关闭 WiFi 模块
+    this.stopWiFi();
   },
 
   /**
@@ -76,15 +74,13 @@ Page({
     return {}
   },
 
-  onLoadWiFi(wifi: WechatMiniprogram.WifiInfo) {
-    const data = { wifi: wifi };
+  onLoadSSID(ssid: string) {
+    const data = { ssid: ssid };
     this.setData(data);
-
-    this.getWiFiList();
   },
 
   onGetWiFiList(res: WechatMiniprogram.OnGetWifiListCallbackResult) {
-    let wifis = res.wifiList.concat(this.data.wifi);
+    let wifis = this.data.wifis.concat(res.wifiList);
     wifis = this.distinct(wifis).sort((w1, w2) => w1.SSID.localeCompare(w2.SSID));
     console.log(wifis);
 
@@ -102,6 +98,84 @@ Page({
       res.push(w1);
     });
     return res;
+  },
+
+  onWiFiChange(e: Record<string, any>) {
+    console.log(`wifi.onWiFiChange: - ${JSON.stringify(e)}`);
+
+    const number = e.detail.value;
+    const wifi = this.data.wifis[number];
+    const data = { "ssid": wifi.SSID };
+    this.setData(data);
+
+    const pages = getCurrentPages();
+    const page = pages[pages.length - 2];
+    page.setSSID(wifi.SSID);
+  },
+
+  startWiFi() {
+    const option: WechatMiniprogram.StartWifiOption = {
+      success: () => {
+        console.log("打开 WiFi 模块成功");
+
+        this.getConnectedWiFi();
+      },
+      fail: res => console.log(`打开 WiFi 模块失败：${res.errCode} - ${res.errMsg}`)
+    };
+    wx.startWifi(option);
+  },
+
+  stopWiFi() {
+    const option: WechatMiniprogram.StopWifiOption = {
+      success: () => console.log("关闭 WiFi 模块成功"),
+      fail: res => console.log(`关闭 WiFi 模块失败：${res.errCode} - ${res.errMsg}`)
+    };
+    wx.stopWifi(option);
+  },
+
+  getConnectedWiFi() {
+    const option: WechatMiniprogram.GetConnectedWifiOption = {
+      success: res => {
+        const wifi = res.wifi;
+        console.log(`获取已连接 WiFi 成功: ${JSON.stringify(wifi)}`);
+
+        const data = { wifis: [wifi] };
+        this.setData(data);
+        this.getSystemInfo();
+      },
+      fail: res => console.log(`获取已连接 WiFi 失败: ${res.errCode} - ${res.errMsg}`)
+    };
+    wx.getConnectedWifi(option);
+  },
+
+  getSystemInfo() {
+    const option1: WechatMiniprogram.GetSystemInfoOption = {
+      success: res => {
+        console.log(`获取系统信息成功：${JSON.stringify(res)}`);
+
+        // iOS 需要提示用户跳转系统设置界面
+        if (res.platform === "ios") {
+          const option2: WechatMiniprogram.ShowModalOption = {
+            title: "提示",
+            content: "由于系统限制，iOS 用户请手动进入系统 WiFi 页面，当列表中出现目标 WiFi 时再返回小程序。",
+            showCancel: false,
+            success: res => {
+              console.log("提示框弹出成功");
+
+              if (res.confirm) {
+                this.getWiFiList();
+              }
+            },
+            fail: res => console.log(`提示窗弹出失败：${res.errMsg}`)
+          };
+          wx.showModal(option2);
+        } else {
+          this.getWiFiList();
+        }
+      },
+      fail: res => console.log(`获取系统信息失败：${res.errMsg}`)
+    };
+    wx.getSystemInfo(option1);
   },
 
   getWiFiList() {
@@ -135,15 +209,5 @@ Page({
       fail: res => console.log(`申请权限失败：${res.errMsg}`)
     };
     wx.authorize(option);
-  },
-
-  onWiFiChange(e: Record<string, any>) {
-    const number = e.detail.value;
-    const wifi = this.data.wifis[number];
-    const data = { "wifi": wifi };
-    this.setData(data);
-
-    const channel = this.getOpenerEventChannel();
-    channel.emit("wifi", wifi);
   }
 })

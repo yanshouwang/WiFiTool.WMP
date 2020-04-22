@@ -3,39 +3,39 @@
 	<weui-form>
 		<weui-cells wx:if="{{type === 'wifi'}}" title="网络">
 			<weui-cell class="weui-cell_select" title="SSID" bindtap="onTapSSID">
-				<view class="weui-input">{{wifi.SSID}}</view>
+				<view class="weui-input">{{newer.ssid}}</view>
 			</weui-cell>
-			<weui-cell title="密码">
-				<input class="weui-input" data-key="password" placeholder="输入密码" password="true" bindinput="onValuesChange" value="{{password}}" />
+			<weui-cell wx:if="{{newer.ssid!==older.ssid}}" title="密码">
+				<input class="weui-input" data-key="password" placeholder="输入密码" password="true" bindinput="onValuesChange" value="{{newer.password}}" />
 			</weui-cell>
 		</weui-cells>
 		<weui-cells title="IPV4">
 			<weui-cell class="weui-cell_select" title="配置 IP">
-				<picker range="{{modes}}" bindchange="onIPModeChange">
-					<view class="weui-input">{{ip.mode}}</view>
+				<picker range="{{modes}}" value="{{number0}}" bindchange="onIPModeChange">
+					<view class="weui-input">{{newer.ip.mode==="auto"?"自动":"手动"}}</view>
 				</picker>
 			</weui-cell>
-			<weui-cell wx:if="{{ip.mode==='手动'}}" title="IP">
-				<input class="weui-input" data-key="address" placeholder="IP" bindinput="onValuesChange" value="{{ip.address}}" />
+			<weui-cell wx:if="{{newer.ip.mode==='manual'}}" title="IP">
+				<input class="weui-input" data-key="address" placeholder="IP" bindinput="onIPValuesChange" value="{{newer.ip.address}}" />
 			</weui-cell>
-			<weui-cell wx:if="{{ip.mode==='手动'}}" title="子网掩码">
-				<input class="weui-input" data-key="mask" placeholder="子网掩码" bindinput="onValuesChange" value="{{ip.mask}}" />
+			<weui-cell wx:if="{{newer.ip.mode==='manual'}}" title="子网掩码">
+				<input class="weui-input" data-key="mask" placeholder="子网掩码" bindinput="onIPValuesChange" value="{{newer.ip.mask}}" />
 			</weui-cell>
-			<weui-cell wx:if="{{ip.mode==='手动'}}" title="网关">
-				<input class="weui-input" data-key="gateway" placeholder="网关" bindinput="onValuesChange" value="{{ip.gateway}}" />
+			<weui-cell wx:if="{{newer.ip.mode==='manual'}}" title="网关">
+				<input class="weui-input" data-key="gateway" placeholder="网关" bindinput="onIPValuesChange" value="{{newer.ip.gateway}}" />
 			</weui-cell>
 		</weui-cells>
 		<weui-cells title="DNS">
 			<weui-cell class="weui-cell_select" title="配置 DNS">
-				<picker range="{{modes}}" bindchange="onDNSModeChange">
-					<view class="weui-input">{{dns.mode}}</view>
+				<picker range="{{modes}}" value="{{number1}}" bindchange="onDNSModeChange">
+					<view class="weui-input">{{newer.dns.mode==="auto"?"自动":"手动"}}</view>
 				</picker>
 			</weui-cell>
-			<weui-cell wx:if="{{dns.mode==='手动'}}" title="首选 DNS">
-				<input class="weui-input" data-key="dns1" placeholder="首选 DNS" bindinput="onValuesChange" value="{{dns.dns1}}" />
+			<weui-cell wx:if="{{newer.dns.mode==='manual'}}" title="首选 DNS">
+				<input class="weui-input" data-key="dns1" placeholder="首选 DNS" bindinput="onDNSValuesChange" value="{{newer.dns.values[0]}}" />
 			</weui-cell>
-			<weui-cell wx:if="{{dns.mode==='手动'}}" title="备用 DNS">
-				<input class="weui-input" data-key="dns2" placeholder="备用 DNS" bindinput="onValuesChange" value="{{dns.dns2}}" />
+			<weui-cell wx:if="{{newer.dns.mode==='manual'}}" title="备用 DNS">
+				<input class="weui-input" data-key="dns2" placeholder="备用 DNS" bindinput="onDNSValuesChange" value="{{newer.dns.values[1]}}" />
 			</weui-cell>
 		</weui-cells>
 		<button class="submit" type="primary" style="width:calc(100% - 80rpx);height:80rpx;min-height:80rpx" bindtap="onSubmit">配置</button>
