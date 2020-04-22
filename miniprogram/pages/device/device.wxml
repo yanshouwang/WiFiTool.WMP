@@ -1,6 +1,6 @@
 <!--pages/device/device.wxml-->
 <view class="container">
-	<view wx:for="{{adapters}}" wx:key="name" class="{{item.type==='ethernet'?'adapter linearblue':'adapter linearorange'}}" hover-class="{{item.type=='ethernet'?'hover_linearblue':'hover_linearorange'}}" id="{{index}}" bindtap="onTapAdapter">
+	<view wx:for="{{adapters}}" wx:key="name" class="adapter linearblue" hover-class="hover_linearblue" id="{{index}}" bindtap="onTapAdapter">
 		<view class="stack_container header">
 			<text class="{{item.state===100?'invisible title':'title'}}">{{item.type==="ethernet"?"有线网络连接":"无线网络连接"}}</text>
 			<text class="{{item.state===100?'stack_item title':'stack_item title invisible'}}">{{item.ssid}}</text>

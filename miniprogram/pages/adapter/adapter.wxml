@@ -12,7 +12,7 @@
 		<weui-cells title="IPV4">
 			<weui-cell class="weui-cell_select" title="配置 IP">
 				<picker range="{{modes}}" value="{{number0}}" bindchange="onIPModeChange">
-					<view class="weui-input">{{newer.ip.mode==="auto"?"自动":"手动"}}</view>
+					<view class="weui-input">{{modes[number0]}}</view>
 				</picker>
 			</weui-cell>
 			<weui-cell wx:if="{{newer.ip.mode==='manual'}}" title="IP">
@@ -27,8 +27,8 @@
 		</weui-cells>
 		<weui-cells title="DNS">
 			<weui-cell class="weui-cell_select" title="配置 DNS">
-				<picker range="{{modes}}" value="{{number1}}" bindchange="onDNSModeChange">
-					<view class="weui-input">{{newer.dns.mode==="auto"?"自动":"手动"}}</view>
+				<picker range="{{modes}}" value="{{number1}}" disabled="{{disabled1}}" bindchange="onDNSModeChange">
+					<view class="weui-input">{{modes[number1]}}</view>
 				</picker>
 			</weui-cell>
 			<weui-cell wx:if="{{newer.dns.mode==='manual'}}" title="首选 DNS">

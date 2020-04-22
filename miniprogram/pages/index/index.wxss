@@ -16,6 +16,7 @@
   height: 200rpx;
   color: white;
   display: flex;
+  justify-content: center;
   flex-direction: row;
   align-items: center;
   margin-bottom: 20rpx;
@@ -32,35 +33,15 @@
 }
 
 .deviceLogo {
-  margin-left: 80rpx;
-  margin-right: 20rpx;
-  width: 80rpx;
-  height: 80rpx;
+  width: 10%;
 }
 
-.deviceDescription {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-evenly;
-  margin-left: 20rpx;
+.deviceName {
+  width: 50%;
+  margin-left: 5%;
+  margin-right: 5%;
 }
 
-.deviceId {
-  max-width: 100%;
-  font-size: 28rpx;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.rssi {
-  font-size: 28rpx;
-}
-
-.rssi::before {
-  content: "RSSI: ";
-}
-
-.deviceName::before {
-  content: '名称：';
+.deviceSignal {
+  width: 10%;
 }

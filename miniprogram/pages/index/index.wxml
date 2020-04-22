@@ -8,9 +8,11 @@
 <view wx:else class="container">
 	<view class="device" hover-class="device_hover" wx:for='{{devices}}' wx:key="deviceId" id="{{index}}" bindtap="onTapDevice">
 		<image class="deviceLogo" src="../../images/device.svg"></image>
-		<view class="deviceDescription">
-			<text class="deviceName">{{item.localName || item.name}}</text>
-			<text class="rssi">{{item.RSSI}}</text>
-		</view>
+		<text class="deviceName">{{item.localName}}</text>
+		<image wx:if="{{item.RSSI<-80}}" class="deviceSignal" src="../../images/signal0.svg"></image>
+		<image wx:elif="{{item.RSSI<-70}}" class="deviceSignal" src="../../images/signal1.svg"></image>
+		<image wx:elif="{{item.RSSI<-60}}" class="deviceSignal" src="../../images/signal2.svg"></image>
+		<image wx:elif="{{item.RSSI<-50}}" class="deviceSignal" src="../../images/signal3.svg"></image>
+		<image wx:else class="deviceSignal" src="../../images/signal4.svg"></image>
 	</view>
 </view>

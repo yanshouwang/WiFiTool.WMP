@@ -5,6 +5,6 @@
     "weui-cell": "../../miniprogram_npm/weui-miniprogram/cell/cell",
     "reveal": "../../components/reveal/reveal"
   },
-  "navigationBarTitleText": "网络连接",
+  "navigationBarTitleText": "配置网络连接",
   "backgroundColor": "#eeeeee"
 }

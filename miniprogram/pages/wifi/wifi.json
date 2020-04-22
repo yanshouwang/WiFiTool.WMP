@@ -4,6 +4,6 @@
     "weui-checkbox-group": "../../miniprogram_npm/weui-miniprogram/checkbox-group/checkbox-group",
     "weui-checkbox": "../../miniprogram_npm/weui-miniprogram/checkbox/checkbox"
   },
-  "navigationBarTitleText": "WiFi",
+  "navigationBarTitleText": "选择 WiFi",
   "backgroundColor": "#eeeeee"
 }
