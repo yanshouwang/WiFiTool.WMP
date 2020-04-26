@@ -1,6 +1,7 @@
 // index.ts
 import { inArray } from "../../utils/util";
 import { serviceId } from "../../constants/uuid";
+import scan from "../../images/scan";
 
 const obj: WechatMiniprogram.CallbackResultBlueToothDevice[] = [
   // {
@@ -20,7 +21,8 @@ Page({
   data: {
     available: false,
     discovering: false,
-    devices: obj
+    devices: obj,
+    scan: scan
   },
 
   onLoad() {

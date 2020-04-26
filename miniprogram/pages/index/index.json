@@ -1,6 +1,6 @@
 {
   "usingComponents": {
-    "lottie": "../../components/lottie/lottie"
+    "lottie": "../../miniprogram_npm/@yanshouwang/lottie-wmc/lottie"
   },
   "enablePullDownRefresh": true
 }

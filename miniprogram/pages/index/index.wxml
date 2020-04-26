@@ -2,7 +2,7 @@
 <view wx:if="{{!available}}" class="container0">
 </view>
 <view wx:elif="{{devices.length === 0}}" class="container0">
-	<lottie id="lottie"></lottie>
+	<lottie id="lottie" data="{{scan}}" />
 	<text class="description">正在搜索设备...</text>
 </view>
 <view wx:else class="container">
