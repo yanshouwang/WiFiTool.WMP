@@ -10,9 +10,8 @@
   "author": "",
   "license": "",
   "dependencies": {
-    "@yanshouwang/lottie-wmc": "^1.0.3",
-    "decode-utf8": "^1.0.1",
-    "encode-utf8": "^1.0.3",
+    "@yanshouwang/core": "^1.0.0",
+    "@yanshouwang/lottie-wmc": "^1.0.4",
     "weui-miniprogram": "^0.2.2"
   },
   "devDependencies": {

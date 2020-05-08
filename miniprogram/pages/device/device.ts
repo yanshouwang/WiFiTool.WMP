@@ -1,5 +1,4 @@
-import encodeUtf8 = require("encode-utf8");
-import decodeUtf8 = require("decode-utf8");
+import { Encodings } from "@yanshouwang/core";
 import { Adapter, Modify, Type, Mode } from "../../models/nic";
 import { Ask, Answer, Command } from "../../models/command";
 import { serviceId, notifyCharacteristicId, writeCharacteristicId } from "../../constants/uuid";
@@ -251,13 +250,13 @@ Page({
     if (this.buffer.byteLength < 2) {
       return;
     }
-    const array = new Uint8Array(this.buffer);
-    const code1 = array[array.length - 2];
-    const code2 = array[array.length - 1];;
-    if (code1 !== 13 || code2 !== 10) {
+    const codes = new Uint8Array(this.buffer);
+    const code1 = codes[codes.length - 2];
+    const code2 = codes[codes.length - 1];;
+    if (code1 !== 0x0D || code2 !== 0x0A) {
       return;
     }
-    let str: string = decodeUtf8(this.buffer).trim();
+    let str: string = Encodings.UTF8.toString(codes).trim();
     console.log(`device.onCharacteristicValueChange 收到回复: ${str}`);
 
     const answer: Answer = JSON.parse(str);
@@ -352,12 +351,12 @@ Page({
     console.log(`device.write 写入请求: ${str}`);
 
     const device = this.data.device;
-    const value = encodeUtf8(str);
+    const codes = Encodings.UTF8.toBytes(str);
     const option2: WechatMiniprogram.WriteBLECharacteristicValueOption = {
       deviceId: device.deviceId,
       serviceId: serviceId,
       characteristicId: writeCharacteristicId,
-      value: value,
+      value: codes.buffer,
       success: res => console.log(`device.write 成功: ${res.errCode} - ${res.errMsg}`),
       fail: res => console.log(`device.write 失败: ${res.errCode} - ${res.errMsg}`)
     };
