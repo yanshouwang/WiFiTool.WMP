@@ -1,11 +1,23 @@
 /*! *****************************************************************************
-Copyright (c) 2019 Tencent, Inc. All rights reserved.
+Copyright (c) 2020 Tencent, Inc. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of 
+this software and associated documentation files (the "Software"), to deal in 
+the Software without restriction, including without limitation the rights to 
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+of the Software, and to permit persons to whom the Software is furnished to do 
+so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all 
+copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+SOFTWARE.
 ***************************************************************************** */
 
 declare namespace WechatMiniprogram {
@@ -26,7 +38,7 @@ declare namespace WechatMiniprogram {
         type TrivialInstance = Instance<IAnyObject, IAnyObject>
         interface Constructor {
             <TData extends DataOption, TCustom extends CustomOption>(
-                options: Options<TData, TCustom>,
+                options: Options<TData, TCustom>
             ): void
         }
         interface ILifetime {
@@ -36,7 +48,7 @@ declare namespace WechatMiniprogram {
              */
             onLoad(
                 /** 打开当前页面路径中的参数 */
-                query: Record<string, string | undefined>,
+                query: Record<string, string | undefined>
             ): void
             /** 生命周期回调—监听页面显示
              *
@@ -86,7 +98,7 @@ declare namespace WechatMiniprogram {
              */
             onShareAppMessage(
                 /** 分享发起来源参数 */
-                options: IShareAppMessageOption,
+                options: IShareAppMessageOption
             ): ICustomShareContent
             /** 页面滚动触发事件的处理函数
              *
@@ -94,19 +106,19 @@ declare namespace WechatMiniprogram {
              */
             onPageScroll(
                 /** 页面滚动参数 */
-                options: IPageScrollOption,
+                options: IPageScrollOption
             ): void
 
             /** 当前是 tab 页时，点击 tab 时触发，最低基础库： `1.9.0` */
             onTabItemTap(
                 /** tab 点击参数 */
-                options: ITabItemTapOption,
+                options: ITabItemTapOption
             ): void
 
             /** 窗口尺寸改变时触发，最低基础库：`2.4.0` */
             onResize(
                 /** 窗口尺寸参数 */
-                options: IResizeOption,
+                options: IResizeOption
             ): void
         }
         interface InstanceProperties {
@@ -115,6 +127,9 @@ declare namespace WechatMiniprogram {
 
             /** 到当前页面的路径 */
             route: string
+
+            /** 打开当前页面路径中的参数 */
+            options: Record<string, string | undefined>
         }
 
         type DataOption = Record<string, any>
@@ -122,9 +137,7 @@ declare namespace WechatMiniprogram {
 
         type InstanceMethods<D extends DataOption> = Component.InstanceMethods<
             D
-        > & {
-            getOpenerEventChannel(): EventChannel,
-        }
+        >
 
         interface Data<D extends DataOption> {
             /** 页面的初始数据
@@ -187,7 +200,7 @@ declare namespace WechatMiniprogram {
                 /** 变化后的窗口宽度，单位 px */
                 windowWidth: number
                 /** 变化后的窗口高度，单位 px */
-                windowHeight: number,
+                windowHeight: number
             }
         }
 
@@ -200,7 +213,7 @@ declare namespace WechatMiniprogram {
 /**
  * 注册小程序中的一个页面。接受一个 `Object` 类型参数，其指定页面的初始数据、生命周期回调、事件处理函数等。
  */
-declare const Page: WechatMiniprogram.Page.Constructor
+declare let Page: WechatMiniprogram.Page.Constructor
 /**
  * 获取当前页面栈。数组中第一个元素为首页，最后一个元素为当前页面。
 
@@ -209,4 +222,4 @@ declare const Page: WechatMiniprogram.Page.Constructor
  *  - __不要尝试修改页面栈，会导致路由以及页面状态错误。__
  *  - 不要在 `App.onLaunch` 的时候调用 `getCurrentPages()`，此时 `page` 还没有生成。
  */
-declare const getCurrentPages: WechatMiniprogram.Page.getCurrentPages
+declare let getCurrentPages: WechatMiniprogram.Page.getCurrentPages

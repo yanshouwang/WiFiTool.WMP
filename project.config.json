@@ -5,7 +5,7 @@
 	},
 	"miniprogramRoot": "miniprogram/",
 	"compileType": "miniprogram",
-	"libVersion": "2.8.2",
+	"libVersion": "2.10.4",
 	"projectname": "WiFi%20%E9%85%8D%E7%BD%AE%E5%B7%A5%E5%85%B7",
 	"scripts": {
 		"beforeCompile": "npm run tsc",

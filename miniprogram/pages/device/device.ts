@@ -2,10 +2,11 @@ import { Encodings } from "@yanshouwang/core";
 import { Adapter, Modify, Type, Mode } from "../../models/nic";
 import { Ask, Answer, Command } from "../../models/command";
 import { serviceId, notifyCharacteristicId, writeCharacteristicId } from "../../constants/uuid";
+import WX = WechatMiniprogram;
 
 const endSymbol = "\r\n";
 
-const device: WechatMiniprogram.CallbackResultBlueToothDevice = {
+const device: WX.CallbackResultBlueToothDevice = {
   advertisData: new ArrayBuffer(0),
   advertisServiceUUIDs: [],
   serviceData: [],
@@ -52,8 +53,6 @@ Page({
    * 生命周期函数--监听页面加载
    */
   onLoad() {
-    console.log("device.onLoad");
-
     wx.onBLEConnectionStateChange(res => this.onConnectionStateChange(res));
     wx.onBLECharacteristicValueChange(res => this.onCharacteristicValueChange(res));
 
@@ -61,11 +60,9 @@ Page({
     channel.on("device", device => this.onLoadDevice(device));
   },
 
-  onLoadDevice(device: WechatMiniprogram.CallbackResultBlueToothDevice) {
-    console.log(`device.onLoadDevice: ${device}`);
-
+  onLoadDevice(device: WX.CallbackResultBlueToothDevice) {
     this.setNavigationBarTitle(device.localName);
-    const data: Record<string, any> = {};
+    const data: WX.IAnyObject = {};
     data["device"] = device;
     this.setData(data);
     this.connect();
@@ -75,7 +72,6 @@ Page({
    * 生命周期函数--监听页面初次渲染完成
    */
   onReady() {
-    console.log("device.onReady");
 
   },
 
@@ -83,8 +79,6 @@ Page({
    * 生命周期函数--监听页面显示
    */
   onShow() {
-    console.log("device.onShow");
-
     this.hide = false;
     if (!this.data.connected) {
       this.connect();
@@ -97,8 +91,6 @@ Page({
    * 生命周期函数--监听页面隐藏
    */
   onHide() {
-    console.log("device.onHide");
-
     this.hide = true;
   },
 
@@ -106,8 +98,6 @@ Page({
    * 生命周期函数--监听页面卸载
    */
   onUnload() {
-    console.log("device.onUnload");
-
     this.unload = true;
     this.disconnect();
   },
@@ -116,9 +106,7 @@ Page({
    * 页面相关事件处理函数--监听用户下拉动作
    */
   onPullDownRefresh() {
-    console.log("device.onPullDownRefresh");
-
-    const data: Record<string, any> = {};
+    const data: WX.IAnyObject = {};
     data["adapters"] = adapters;
     this.setData(data);
     this.getAdapters();
@@ -129,95 +117,74 @@ Page({
    * 页面上拉触底事件的处理函数
    */
   onReachBottom() {
-    console.log("device.onReachBottom");
 
   },
 
   /**
    * 用户点击右上角分享
    */
-  onShareAppMessage(opts): WechatMiniprogram.Page.ICustomShareContent {
-    console.log(`device.onShareAppMessage: ${opts}`);
+  onShareAppMessage(opts): WX.Page.ICustomShareContent {
+    console.log(opts.target);
     return {};
   },
 
-  onTapAdapter(e: Record<string, any>) {
-    console.log(`device.onTapAdapter: ${e}`);
-
+  onTapAdapter(e: WX.IAnyObject) {
     const number = e.currentTarget.id;
     const adapter = this.data.adapters[number];
     // 有线网络未连接时不允许修改
     if (adapter.type === Type.Ethernet && adapter.state !== 100) {
       return;
     }
-    const option: WechatMiniprogram.NavigateToOption = {
-      url: "../adapter/adapter",
-      success: res => {
-        console.log(`device.onTapAdapter 导航成功: ${res.errMsg}`);
-
-        const channel = res.eventChannel;
-        channel.emit("adapter", adapter);
-      },
-      fail: res => console.log(`device.onTapAdapter 导航失败: ${res.errMsg}`)
-    };
-    wx.navigateTo(option);
+    const option: WX.NavigateToOption = { url: "../adapter/adapter" };
+    wx.navigateTo(option)
+      .then(res => res.eventChannel.emit("adapter", adapter))
+      .catch(err => console.error(`device.onTapAdapter: ${JSON.stringify(err)}`));
   },
 
-  onConnectionStateChange(res: WechatMiniprogram.OnBLEConnectionStateChangeCallbackResult) {
-    console.log(`device.onConnectionStateChange: ${res.deviceId} - ${res.connected}`);
-
+  onConnectionStateChange(res: WX.OnBLEConnectionStateChangeCallbackResult) {
     const device = this.data.device;
     if (res.deviceId !== device.deviceId) {
       return;
     }
-    const data: Record<string, any> = {};
+    const data: WX.IAnyObject = {};
     data["connected"] = res.connected;
     this.setData(data);
     if (res.connected) {
       // 获取服务
-      const option1: WechatMiniprogram.GetBLEDeviceServicesOption = {
-        deviceId: device.deviceId,
-        success: res => {
-          console.log(`device.onConnectionStateChange 获取服务成功: ${res.errMsg} - ${res.services}`);
-
+      const option1: WX.GetBLEDeviceServicesOption = { deviceId: device.deviceId };
+      wx.getBLEDeviceServices(option1)
+        .then(() => {
           // 获取特征值
-          const option2: WechatMiniprogram.GetBLEDeviceCharacteristicsOption = {
+          const option2: WX.GetBLEDeviceCharacteristicsOption = {
+            deviceId: device.deviceId,
+            serviceId: serviceId
+          };
+          return wx.getBLEDeviceCharacteristics(option2);
+        })
+        .then(() => {
+          // 打开通知
+          const option3: WX.NotifyBLECharacteristicValueChangeOption = {
             deviceId: device.deviceId,
             serviceId: serviceId,
-            success: res => {
-              console.log(`device.onConnectionStateChange 获取特征值成功: ${res.errMsg} - ${res.characteristics}`);
-
-              // 打开通知
-              const option3: WechatMiniprogram.NotifyBLECharacteristicValueChangeOption = {
-                deviceId: device.deviceId,
-                serviceId: serviceId,
-                characteristicId: notifyCharacteristicId,
-                state: true,
-                success: res => {
-                  console.log(`device.onConnectionStateChange 打开通知成功: ${res.errCode} - ${res.errMsg}`);
-                  this.hideLoading();
-
-                  this.keepAlive();
-                  if (this.data.adapters.length === 0) {
-                    this.getAdapters();
-                  } else if (this.data.modify.name === "") {
-                    const names = this.data.adapters.map(a => a.name);
-                    this.getStatus(names);
-                  } else {
-                    this.modify();
-                  }
-                },
-                fail: res => console.log(`device.onConnectionStateChange 打开通知失败: ${res.errCode} - ${res.errMsg}`)
-              };
-              wx.notifyBLECharacteristicValueChange(option3);
-            },
-            fail: res => console.log(`device.onConnectionStateChange 获取特征值失败: ${res.errCode} - ${res.errMsg}`)
+            characteristicId: notifyCharacteristicId,
+            state: true
           };
-          wx.getBLEDeviceCharacteristics(option2);
-        },
-        fail: res => console.log(`device.onConnectionStateChange 获取服务失败: ${res.errCode} - ${res.errMsg}`)
-      };
-      wx.getBLEDeviceServices(option1);
+          return wx.notifyBLECharacteristicValueChange(option3);
+        })
+        .then(() => {
+          this.hideLoading();
+          // 开始心跳
+          this.keepAlive();
+          if (this.data.adapters.length === 0) {
+            this.getAdapters();
+          } else if (this.data.modify.name === "") {
+            const names = this.data.adapters.map(a => a.name);
+            this.getStatus(names);
+          } else {
+            this.modify();
+          }
+        })
+        .catch(err => console.error(`device.onConnectionStateChange: ${JSON.stringify(err)}`));
     } else {
       // 停止心跳
       clearInterval(this.intervalID);
@@ -228,9 +195,7 @@ Page({
     }
   },
 
-  onCharacteristicValueChange(res: WechatMiniprogram.OnBLECharacteristicValueChangeCallbackResult) {
-    console.log(`device.onCharacteristicValueChange: ${res.deviceId} - ${res.serviceId} - ${res.characteristicId} - ${res.value}`);
-
+  onCharacteristicValueChange(res: WX.OnBLECharacteristicValueChangeCallbackResult) {
     const device = this.data.device;
     if (res.deviceId !== device.deviceId || res.serviceId !== serviceId || res.characteristicId !== notifyCharacteristicId) {
       return;
@@ -256,8 +221,8 @@ Page({
     if (code1 !== 0x0D || code2 !== 0x0A) {
       return;
     }
-    let str: string = Encodings.UTF8.toString(codes).trim();
-    console.log(`device.onCharacteristicValueChange 收到回复: ${str}`);
+    const str: string = Encodings.UTF8.toString(codes).trim();
+    console.debug(`device.onCharacteristicValueChange 收到回复: ${str}`);
 
     const answer: Answer = JSON.parse(str);
     this.dealWithAnswer(answer);
@@ -268,7 +233,7 @@ Page({
     this.hideLoading();
     if (answer.errCode !== 0) {
       if (this.refreshing) {
-        wx.stopPullDownRefresh();
+        this.stopPullDownRefresh();
       }
       this.showToast(`errCode: ${answer.errCode}`, "../../images/error.png");
       return;
@@ -277,7 +242,7 @@ Page({
     switch (cmd) {
       case Command.GetAdapters: {
         const adapters = (<Adapter[]>answer.adapters).sort((a1, a2) => a1.name.localeCompare(a2.name));
-        const data: Record<string, any> = {};
+        const data: WX.IAnyObject = {};
         data["adapters"] = adapters;
         this.setData(data);
         const names = adapters.map(i => i.name);
@@ -291,8 +256,6 @@ Page({
           for (let i = 0; i < adapters.length; i++) {
             const adapter = adapters[i];
             if (adapter.name === item.name) {
-              console.log(`device.dealWithAnswer 更新适配器: ${adapter.name}`);
-
               adapter.state = item.state;
               adapter.ssid = item.ssid;
               adapter.ip = item.ip;
@@ -302,7 +265,7 @@ Page({
               // 未配置时返回 "", 需要改为 "auto"
               adapter.dns.mode = item.dns.mode === Mode.Manual ? Mode.Manual : Mode.Auto;
 
-              const data: Record<string, any> = {};
+              const data: WX.IAnyObject = {};
               data[`adapters[${i}]`] = adapter;
               this.setData(data);
               break;
@@ -310,7 +273,7 @@ Page({
           }
         });
         if (this.refreshing) {
-          wx.stopPullDownRefresh();
+          this.stopPullDownRefresh();
         }
         break;
       }
@@ -327,53 +290,40 @@ Page({
 
   connect() {
     const device = this.data.device;
-    const option: WechatMiniprogram.CreateBLEConnectionOption = {
-      deviceId: device.deviceId,
-      success: res => console.log(`device.connect 成功: ${res.errCode} - ${res.errMsg}`),
-      fail: res => console.log(`device.connect 失败: ${res.errCode} - ${res.errMsg}`)
-    };
-    wx.createBLEConnection(option);
+    const option: WX.CreateBLEConnectionOption = { deviceId: device.deviceId };
+    wx.createBLEConnection(option)
+      .catch(err => console.error(`device.connect: ${JSON.stringify(err)}`));
     this.showLoading("正在连接");
   },
 
   disconnect() {
     const device = this.data.device;
-    const option: WechatMiniprogram.CloseBLEConnectionOption = {
-      deviceId: device.deviceId,
-      success: res => console.log(`device.disconnect 成功: ${res.errCode} - ${res.errMsg}`),
-      fail: res => console.log(`device.disconnect 失败: ${res.errCode} - ${res.errMsg}`)
-    };
-    wx.closeBLEConnection(option);
+    const option: WX.CloseBLEConnectionOption = { deviceId: device.deviceId };
+    wx.closeBLEConnection(option)
+      .catch(err => console.error(`device.disconnect: ${JSON.stringify(err)}`));
   },
 
   write(ask: Ask) {
     const str = `${JSON.stringify(ask)}${endSymbol}`;
-    console.log(`device.write 写入请求: ${str}`);
-
     const device = this.data.device;
     const codes = Encodings.UTF8.toBytes(str);
-    const option2: WechatMiniprogram.WriteBLECharacteristicValueOption = {
+    const option2: WX.WriteBLECharacteristicValueOption = {
       deviceId: device.deviceId,
       serviceId: serviceId,
       characteristicId: writeCharacteristicId,
-      value: codes.buffer,
-      success: res => console.log(`device.write 成功: ${res.errCode} - ${res.errMsg}`),
-      fail: res => console.log(`device.write 失败: ${res.errCode} - ${res.errMsg}`)
+      value: codes.buffer
     };
-    wx.writeBLECharacteristicValue(option2);
+    wx.writeBLECharacteristicValue(option2)
+      .catch(err => console.error(`device.write: ${JSON.stringify(err)}`));
   },
 
   keepAlive() {
-    const ask: Ask = {
-      cmd: Command.KeepAlive
-    };
+    const ask: Ask = { cmd: Command.KeepAlive };
     this.intervalID = setInterval(() => this.write(ask), 20 * 1000);
   },
 
   getAdapters() {
-    const ask: Ask = {
-      cmd: Command.GetAdapters
-    };
+    const ask: Ask = { cmd: Command.GetAdapters };
     this.write(ask);
     this.showLoading("获取适配器列表");
   },
@@ -399,45 +349,42 @@ Page({
     this.write(ask);
     this.showLoading("正在配置...");
     // 重置 modify
-    const data: Record<string, any> = {};
+    const data: WX.IAnyObject = {};
     data["modify"] = modify;
     this.setData(data);
   },
 
-  showLoading(title: string, ) {
-    const option: WechatMiniprogram.ShowLoadingOption = {
+  showLoading(title: string) {
+    const option: WX.ShowLoadingOption = {
       title: title,
-      mask: true,
-      success: res => console.log(`device.showLoading 成功: ${res.errMsg}`),
-      fail: res => console.log(`device.showLoading 失败: ${res.errMsg}`)
+      mask: true
     };
-    wx.showLoading(option);
+    wx.showLoading(option)
+      .catch(err => console.error(`device.showLoading: ${JSON.stringify(err)}`));
   },
 
   hideLoading() {
-    const option: WechatMiniprogram.HideLoadingOption = {
-      success: res => console.log(`device.hideLoading 成功: ${res.errMsg}`),
-      fail: res => console.log(`device.hideLoading 失败: ${res.errMsg}`)
-    };
-    wx.hideLoading(option);
+    wx.hideLoading({})
+      .catch(err => console.error(`device.hideLoading: ${JSON.stringify(err)}`));
   },
 
   showToast(title: string, image?: string) {
-    const option: WechatMiniprogram.ShowToastOption = {
+    const option: WX.ShowToastOption = {
       title: title,
-      image: image,
-      success: res => console.log(`device.showToast 成功: ${res.errMsg}`),
-      fail: res => console.log(`device.showToast 失败: ${res.errMsg}`)
+      image: image
     };
-    wx.showToast(option);
+    wx.showToast(option)
+      .catch(err => console.error(`device.showToast: ${JSON.stringify(err)}`));
   },
 
   setNavigationBarTitle(title: string) {
-    const option: WechatMiniprogram.SetNavigationBarTitleOption = {
-      title: title,
-      success: res => console.log(`device.setNavigationBarTitle 成功: ${res.errMsg}`),
-      fail: res => console.log(`device.setNavigationBarTitle 失败: ${res.errMsg}`)
-    };
-    wx.setNavigationBarTitle(option);
+    const option: WX.SetNavigationBarTitleOption = { title: title };
+    wx.setNavigationBarTitle(option)
+      .catch(err => console.error(`device.setNavigationBarTitle: ${JSON.stringify(err)}`));
+  },
+
+  stopPullDownRefresh() {
+    wx.stopPullDownRefresh()
+      .catch(err => console.error(`device.stopPullDownRefresh: ${JSON.stringify(err)}`));
   }
 });

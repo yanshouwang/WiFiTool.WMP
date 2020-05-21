@@ -1,9 +1,10 @@
 // index.ts
 import { inArray } from "../../utils/util";
 import { serviceId } from "../../constants/uuid";
-import scan from "../../images/scan";
+import { scan } from "../../images/scan";
+import WX = WechatMiniprogram;
 
-const obj: WechatMiniprogram.CallbackResultBlueToothDevice[] = [
+const obj: WX.CallbackResultBlueToothDevice[] = [
   // {
   //   advertisData: new ArrayBuffer(0),
   //   advertisServiceUUIDs: [],
@@ -26,8 +27,6 @@ Page({
   },
 
   onLoad() {
-    console.log("index.onLoad");
-
     wx.onBluetoothAdapterStateChange(res => this.onAdapterStateChange(res));
     wx.onBluetoothDeviceFound(res => this.onDeviceFound(res));
     // 初始化蓝牙模块
@@ -35,13 +34,10 @@ Page({
   },
 
   onReady() {
-    console.log("index.onReady");
 
   },
 
   onShow() {
-    console.log("index.onShow");
-
     this.hide = false;
     if (this.data.available && !this.data.discovering) {
       this.startDiscovery();
@@ -49,8 +45,6 @@ Page({
   },
 
   onHide() {
-    console.log("index.onHide");
-
     this.hide = true;
     if (this.data.available && this.data.discovering) {
       this.stopDiscovery();
@@ -58,43 +52,30 @@ Page({
   },
 
   onUnload() {
-    console.log("index.onUnload");
-
     // 关闭蓝牙模块
     this.closeAdapter();
   },
 
   onPullDownRefresh() {
-    console.log("index.onPullDownRefresh");
-
-    const data: Record<string, any> = {};
+    const data: WX.IAnyObject = {};
     data["devices"] = [];
     this.setData(data);
     this.stopPullDownRefresh();
   },
 
-  onTapDevice(e: Record<string, any>) {
-    console.log(`index.onTapDevice: ${e}`);
-
-    const i: number = e.currentTarget.id;
-    const device = this.data.devices[i];
-    const option: WechatMiniprogram.NavigateToOption = {
-      url: "../device/device",
-      success: res => {
-        console.log(`device.onTapDevice 导航成功: ${res.errMsg}`);
-
-        const channel = res.eventChannel;
-        channel.emit("device", device);
-      },
-      fail: res => console.log(`device.onTapDevice 导航失败: ${res.errMsg}`)
-    };
-    wx.navigateTo(option);
+  onTapDevice(e: WX.IAnyObject) {
+    const option: WX.NavigateToOption = { url: "../device/device" };
+    wx.navigateTo(option)
+      .then(res => {
+        const i: number = e.currentTarget.id;
+        const device = this.data.devices[i];
+        res.eventChannel.emit("device", device);
+      })
+      .catch(err => console.error(`device.onTapDevice 导航失败: ${JSON.stringify(err)}`));
   },
 
-  onAdapterStateChange(res: WechatMiniprogram.OnBluetoothAdapterStateChangeCallbackResult) {
-    console.log(`device.onAdapterStateChange: ${res.available} - ${res.discovering}`);
-
-    const data: Record<string, any> = {};
+  onAdapterStateChange(res: WX.OnBluetoothAdapterStateChangeCallbackResult) {
+    const data: WX.IAnyObject = {};
     data["available"] = res.available;
     data["discovering"] = res.discovering;
     this.setData(data);
@@ -110,15 +91,11 @@ Page({
     }
   },
 
-  onDeviceFound(res: WechatMiniprogram.OnBluetoothDeviceFoundCallbackResult) {
-    console.log(`index.onDeviceFound: ${res.devices}`);
-
+  onDeviceFound(res: WX.OnBluetoothDeviceFoundCallbackResult) {
     res.devices.forEach(device => {
-      const data: { [key: string]: any } = {};
+      const data: WX.IAnyObject = {};
       const i = inArray(this.data.devices, 'deviceId', device.deviceId);
       if (i === -1) {
-        console.log(`device.onDeviceFound 新设备: ${JSON.stringify(device)}`);
-
         const length = this.data.devices.length;
         data[`devices[${length}]`] = device;
       } else {
@@ -129,56 +106,33 @@ Page({
   },
 
   openAdapter() {
-    const option1: WechatMiniprogram.OpenBluetoothAdapterOption = {
-      success: res => {
-        console.log(`index.openAdapter 成功: ${res.errCode} - ${res.errMsg}`);
-
-        const option2: WechatMiniprogram.GetBluetoothAdapterStateOption = {
-          success: res => {
-            console.log(`index.openAdapter 获取状态成功: ${res.available} - ${res.discovering}`);
-
-            this.onAdapterStateChange(res);
-          },
-          fail: res => console.log(`index.openAdapter 获取状态失败: ${res.errCode} - ${res.errMsg}`)
-        };
-        wx.getBluetoothAdapterState(option2);
-      },
-      fail: res => console.log(`index.openAdapter 失败: ${res.errCode} - ${res.errMsg}`)
-    };
-    wx.openBluetoothAdapter(option1);
+    wx.openBluetoothAdapter({})
+      .then(() => wx.getBluetoothAdapterState({}))
+      .then(res => this.onAdapterStateChange(res))
+      .catch(err => console.error(`index.openAdapter 失败: ${JSON.stringify(err)}`));
   },
 
   closeAdapter() {
-    const option: WechatMiniprogram.CloseBluetoothAdapterOption = {
-      success: res => console.log(`index.closeAdapter 成功: ${res.errCode} - ${res.errMsg}`),
-      fail: res => console.log(`index.closeAdapter 失败: ${res.errCode} - ${res.errMsg}`)
-    };
-    wx.closeBluetoothAdapter(option);
+    wx.closeBluetoothAdapter({})
+      .catch(err => console.error(`index.closeAdapter 失败: ${JSON.stringify(err)}`));
   },
 
   startDiscovery() {
-    const option: WechatMiniprogram.StartBluetoothDevicesDiscoveryOption = {
+    const option: WX.StartBluetoothDevicesDiscoveryOption = {
       allowDuplicatesKey: true,
-      services: [serviceId],
-      success: res => console.log(`index.startDiscovery 成功: ${res.errCode} - ${res.errMsg}`),
-      fail: res => console.log(`index.startDiscovery 失败: ${res.errCode} - ${res.errMsg}`)
+      services: [serviceId]
     }
-    wx.startBluetoothDevicesDiscovery(option);
+    wx.startBluetoothDevicesDiscovery(option)
+      .catch(err => console.error(`index.startDiscovery 失败: ${JSON.stringify(err)}`));
   },
 
   stopDiscovery() {
-    const option: WechatMiniprogram.StopBluetoothDevicesDiscoveryOption = {
-      success: res => console.log(`index.stopDiscovery 成功: ${res.errCode} - ${res.errMsg}`),
-      fail: res => console.log(`index.stopDiscovery 失败: ${res.errCode} - ${res.errMsg}`)
-    };
-    wx.stopBluetoothDevicesDiscovery(option);
+    wx.stopBluetoothDevicesDiscovery({})
+      .catch(err => console.error(`index.stopDiscovery 失败: ${JSON.stringify(err)}`));
   },
 
   stopPullDownRefresh() {
-    const option: WechatMiniprogram.StopPullDownRefreshOption = {
-      success: res => console.log(`index.stopPullDownRefresh 成功: ${res.errMsg}`),
-      fail: res => console.log(`index.stopPullDownRefresh 失败: ${res.errMsg}`)
-    };
-    wx.stopPullDownRefresh(option);
+    wx.stopPullDownRefresh({})
+      .catch(err => console.error(`index.stopPullDownRefresh 失败: ${JSON.stringify(err)}`));
   }
 });
