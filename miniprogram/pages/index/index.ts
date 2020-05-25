@@ -26,55 +26,53 @@ Page({
     scan: scan
   },
 
-  onLoad() {
+  async onLoad() {
     wx.onBluetoothAdapterStateChange(res => this.onAdapterStateChange(res));
     wx.onBluetoothDeviceFound(res => this.onDeviceFound(res));
     // 初始化蓝牙模块
-    this.openAdapter();
+    await this.openAdapter();
   },
 
   onReady() {
 
   },
 
-  onShow() {
+  async onShow() {
     this.hide = false;
     if (this.data.available && !this.data.discovering) {
-      this.startDiscovery();
+      await this.startDiscovery();
     }
   },
 
-  onHide() {
+  async onHide() {
     this.hide = true;
     if (this.data.available && this.data.discovering) {
-      this.stopDiscovery();
+      await this.stopDiscovery();
     }
   },
 
-  onUnload() {
+  async onUnload() {
     // 关闭蓝牙模块
-    this.closeAdapter();
+    await this.closeAdapter();
   },
 
-  onPullDownRefresh() {
+  async onPullDownRefresh() {
     const data: WX.IAnyObject = {};
     data["devices"] = [];
     this.setData(data);
-    this.stopPullDownRefresh();
+    await this.stopPullDownRefresh();
   },
 
-  onTapDevice(e: WX.IAnyObject) {
+  async onTapDevice(e: WX.IAnyObject) {
     const option: WX.NavigateToOption = { url: "../device/device" };
-    wx.navigateTo(option)
-      .then(res => {
-        const i: number = e.currentTarget.id;
-        const device = this.data.devices[i];
-        res.eventChannel.emit("device", device);
-      })
-      .catch(err => console.error(`device.onTapDevice 导航失败: ${JSON.stringify(err)}`));
+    const res = await wx.navigateTo(option);
+    const channel = res.eventChannel;
+    const i: number = e.currentTarget.id;
+    const device = this.data.devices[i];
+    channel.emit("device", device);
   },
 
-  onAdapterStateChange(res: WX.OnBluetoothAdapterStateChangeCallbackResult) {
+  async onAdapterStateChange(res: WX.OnBluetoothAdapterStateChangeCallbackResult) {
     const data: WX.IAnyObject = {};
     data["available"] = res.available;
     data["discovering"] = res.discovering;
@@ -83,10 +81,10 @@ Page({
     if (res.available) {
       if (this.hide && res.discovering) {
         // 页面处于隐藏状态时停止搜索
-        this.stopDiscovery();
+        await this.stopDiscovery();
       } else if (!this.hide && !res.discovering) {
         // 页面处于显示状态时开始搜索
-        this.startDiscovery();
+        await this.startDiscovery();
       }
     }
   },
@@ -105,34 +103,30 @@ Page({
     });
   },
 
-  openAdapter() {
-    wx.openBluetoothAdapter({})
-      .then(() => wx.getBluetoothAdapterState({}))
-      .then(res => this.onAdapterStateChange(res))
-      .catch(err => console.error(`index.openAdapter 失败: ${JSON.stringify(err)}`));
+  async openAdapter() {
+    const option: WX.OpenBluetoothAdapterOption = {};
+    await wx.openBluetoothAdapter(option);
+    const res = await wx.getBluetoothAdapterState();
+    await this.onAdapterStateChange(res);
   },
 
-  closeAdapter() {
-    wx.closeBluetoothAdapter({})
-      .catch(err => console.error(`index.closeAdapter 失败: ${JSON.stringify(err)}`));
+  async closeAdapter() {
+    await wx.closeBluetoothAdapter();
   },
 
-  startDiscovery() {
+  async startDiscovery() {
     const option: WX.StartBluetoothDevicesDiscoveryOption = {
       allowDuplicatesKey: true,
       services: [serviceId]
     }
-    wx.startBluetoothDevicesDiscovery(option)
-      .catch(err => console.error(`index.startDiscovery 失败: ${JSON.stringify(err)}`));
+    await wx.startBluetoothDevicesDiscovery(option);
   },
 
-  stopDiscovery() {
-    wx.stopBluetoothDevicesDiscovery({})
-      .catch(err => console.error(`index.stopDiscovery 失败: ${JSON.stringify(err)}`));
+  async stopDiscovery() {
+    await wx.stopBluetoothDevicesDiscovery();
   },
 
-  stopPullDownRefresh() {
-    wx.stopPullDownRefresh({})
-      .catch(err => console.error(`index.stopPullDownRefresh 失败: ${JSON.stringify(err)}`));
+  async stopPullDownRefresh() {
+    await wx.stopPullDownRefresh();
   }
 });

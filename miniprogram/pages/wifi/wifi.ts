@@ -1,3 +1,5 @@
+import WX = WechatMiniprogram;
+
 const wobj1: WechatMiniprogram.WifiInfo[] = [];
 
 Page({
@@ -13,21 +15,22 @@ Page({
   /**
    * 生命周期函数--监听页面加载
    */
-  onLoad() {
-    console.log("wifi.onLoad");
-
+  async onLoad() {
     wx.onGetWifiList(res => this.onGetWiFiList(res));
     const channel = this.getOpenerEventChannel();
     channel.on("ssid", ssid => this.onLoadSSID(ssid));
     // 打开 WiFi 模块
-    this.startWiFi();
+    await wx.startWifi();
+    // 获取已连接 WiFi
+    await this.getConnectedWiFi();
+    // 获取系统 WiFi 列表
+    await this.getSystemWiFiList();
   },
 
   /**
    * 生命周期函数--监听页面初次渲染完成
    */
   onReady() {
-    console.log("wifi.onReady");
 
   },
 
@@ -35,7 +38,6 @@ Page({
    * 生命周期函数--监听页面显示
    */
   onShow() {
-    console.log("wifi.onShow");
 
   },
 
@@ -43,25 +45,21 @@ Page({
    * 生命周期函数--监听页面隐藏
    */
   onHide() {
-    console.log("wifi.onHide");
 
   },
 
   /**
    * 生命周期函数--监听页面卸载
    */
-  onUnload() {
-    console.log("wifi.onUnload");
-
+  async onUnload() {
     // 关闭 WiFi 模块
-    this.stopWiFi();
+    await wx.stopWifi();
   },
 
   /**
    * 页面相关事件处理函数--监听用户下拉动作
    */
   onPullDownRefresh() {
-    console.log("wifi.onPullDownRefresh");
 
   },
 
@@ -69,7 +67,6 @@ Page({
    * 页面上拉触底事件的处理函数
    */
   onReachBottom() {
-    console.log("wifi.onReachBottom");
 
   },
 
@@ -82,21 +79,16 @@ Page({
   },
 
   onLoadSSID(ssid: string) {
-    console.log(`wifi.onLoadSSID: ${ssid}`);
-
-    const data: Record<string, any> = {};
+    const data: WX.IAnyObject = {};
     data["ssid"] = ssid;
     this.setData(data);
   },
 
   onGetWiFiList(res: WechatMiniprogram.OnGetWifiListCallbackResult) {
-    console.log(`wifi.onGetWiFiList: ${res.wifiList}`);
-
     let wifis = this.data.wifis.concat(res.wifiList);
     wifis = this.distinct(wifis).sort((w1, w2) => w1.SSID.localeCompare(w2.SSID));
-    console.log(wifis);
 
-    const data: Record<string, any> = {};
+    const data: WX.IAnyObject = {};
     data["wifis"] = wifis;
     this.setData(data);
   },
@@ -113,9 +105,7 @@ Page({
     return res;
   },
 
-  onWiFiChange(e: Record<string, any>) {
-    console.log(`wifi.onWiFiChange: - ${JSON.stringify(e)}`);
-
+  onWiFiChange(e: WX.IAnyObject) {
     const number = e.detail.value;
     const wifi = this.data.wifis[number];
     const data = { "ssid": wifi.SSID };
@@ -126,101 +116,44 @@ Page({
     page.setSSID(wifi.SSID);
   },
 
-  startWiFi() {
-    const option: WechatMiniprogram.StartWifiOption = {
-      success: res => {
-        console.log(`wifi.startWiFi 成功: ${res.errCode} - ${res.errMsg}`);
-
-        this.getConnectedWiFi();
-      },
-      fail: res => console.log(`wifi.startWiFi 失败: ${res.errCode} - ${res.errMsg}`)
-    };
-    wx.startWifi(option);
+  async getConnectedWiFi() {
+    const res = await wx.getConnectedWifi();
+    const data: WX.IAnyObject = {};
+    data["wifis[0]"] = res.wifi;
+    this.setData(data);
   },
 
-  stopWiFi() {
-    const option: WechatMiniprogram.StopWifiOption = {
-      success: res => console.log(`wifi.stopWiFi 成功: ${res.errCode} -${res.errMsg}`),
-      fail: res => console.log(`wifi.stopWiFi 失败: ${res.errCode} - ${res.errMsg}`)
-    };
-    wx.stopWifi(option);
+  async getSystemWiFiList() {
+    const res1 = await wx.getSystemInfo();
+    // iOS 需要提示用户跳转系统设置界面
+    if (res1.platform === "ios") {
+      const option2: WechatMiniprogram.ShowModalOption = {
+        title: "提示",
+        content: "由于系统限制，iOS 用户请手动进入系统 WiFi 页面，当列表中出现目标 WiFi 时再返回小程序。",
+        showCancel: false
+      };
+      const res2 = await wx.showModal(option2);
+      if (res2.confirm) {
+        await this.getWiFiList();
+      }
+    } else {
+      await this.getWiFiList();
+    }
   },
 
-  getConnectedWiFi() {
-    const option: WechatMiniprogram.GetConnectedWifiOption = {
-      success: res => {
-        console.log(`wifi.getConnectedWiFi 成功: ${res.errMsg} - ${res.wifi}`);
-
-        const data: Record<string, any> = {};
-        data["wifis[0]"] = res.wifi;
-        this.setData(data);
-        this.getSystemInfo();
-      },
-      fail: res => console.log(`wifi.getConnectedWiFi 失败: ${res.errCode} - ${res.errMsg}`)
-    };
-    wx.getConnectedWifi(option);
+  async getWiFiList() {
+    const option: WechatMiniprogram.GetSettingOption = {};
+    const res = await wx.getSetting(option);
+    if (res.authSetting["scope.userLocation"]) {
+      await wx.getWifiList();
+    } else {
+      await this.authorize();
+    }
   },
 
-  getSystemInfo() {
-    const option1: WechatMiniprogram.GetSystemInfoOption = {
-      success: res => {
-        console.log(`wifi.getSystemInfo 成功: ${JSON.stringify(res)}`);
-
-        // iOS 需要提示用户跳转系统设置界面
-        if (res.platform === "ios") {
-          const option2: WechatMiniprogram.ShowModalOption = {
-            title: "提示",
-            content: "由于系统限制，iOS 用户请手动进入系统 WiFi 页面，当列表中出现目标 WiFi 时再返回小程序。",
-            showCancel: false,
-            success: res => {
-              console.log(`wifi.getSystemInfo 提示成功: ${res.errMsg} - ${res.confirm} - ${res.cancel}`);
-
-              if (res.confirm) {
-                this.getWiFiList();
-              }
-            },
-            fail: res => console.log(`wifi.getSystemInfo 提示失败：${res.errMsg}`)
-          };
-          wx.showModal(option2);
-        } else {
-          this.getWiFiList();
-        }
-      },
-      fail: res => console.log(`wifi.getSystemInfo 失败: ${res.errMsg}`)
-    };
-    wx.getSystemInfo(option1);
-  },
-
-  getWiFiList() {
-    const option1: WechatMiniprogram.GetSettingOption = {
-      success: res => {
-        console.log(`wifi.getWiFiList 获取设置成功: ${res.errMsg} - ${res.authSetting}`);
-
-        if (res.authSetting["scope.userLocation"]) {
-          const option2: WechatMiniprogram.GetWifiListOption = {
-            success: res => console.log(`wifi.getWiFiList 成功: ${res.errCode} - ${res.errMsg}`),
-            fail: res => console.log(`wifi.getWiFiList 失败: ${res.errCode} - ${res.errMsg}`)
-          };
-          wx.getWifiList(option2);
-        } else {
-          this.authorize();
-        }
-      },
-      fail: res => console.log(`wifi.getWiFiList 获取设置失败: ${res.errMsg}`)
-    };
-    wx.getSetting(option1);
-  },
-
-  authorize() {
-    const option: WechatMiniprogram.AuthorizeOption = {
-      scope: "scope.userLocation",
-      success: res => {
-        console.log(`wifi.authorize 成功: ${res.errMsg}`);
-
-        this.getWiFiList();
-      },
-      fail: res => console.log(`wifi.authorize 失败: ${res.errMsg}`)
-    };
-    wx.authorize(option);
+  async authorize() {
+    const option: WechatMiniprogram.AuthorizeOption = { scope: "scope.userLocation" }
+    await wx.authorize(option);
+    await this.getWiFiList();
   }
 })

@@ -1,4 +1,5 @@
 import { Adapter, Mode, Modify, IP, DNS, Type } from "../../models/nic";
+import WX = WechatMiniprogram;
 
 const modify: Modify = {
   name: "",
@@ -41,15 +42,11 @@ Page({
    * 生命周期函数--监听页面加载
    */
   onLoad() {
-    console.log("adapter.onLoad");
-
     const channel = this.getOpenerEventChannel();
     channel.on("adapter", adapter => this.onLoadAdapter(adapter));
   },
 
   onLoadAdapter(adapter: Adapter) {
-    console.log(`adapter.onLoadAdapter: ${adapter}`);
-
     const older: Modify = {
       name: adapter.name,
       password: "",
@@ -59,7 +56,7 @@ Page({
     };
     const str = JSON.stringify(older);
     const newer: Modify = JSON.parse(str);
-    const data: Record<string, any> = {};
+    const data: WX.IAnyObject = {};
     data["type"] = adapter.type;
     data["older"] = older;
     data["newer"] = newer;
@@ -77,7 +74,6 @@ Page({
    * 生命周期函数--监听页面初次渲染完成
    */
   onReady() {
-    console.log("adapter.onReady");
 
   },
 
@@ -85,7 +81,6 @@ Page({
    * 生命周期函数--监听页面显示
    */
   onShow() {
-    console.log("adapter.onShow");
 
   },
 
@@ -93,7 +88,6 @@ Page({
    * 生命周期函数--监听页面隐藏
    */
   onHide() {
-    console.log("adapter.onHide");
 
   },
 
@@ -101,7 +95,6 @@ Page({
    * 生命周期函数--监听页面卸载
    */
   onUnload() {
-    console.log("adapter.onUnload");
 
   },
 
@@ -109,7 +102,6 @@ Page({
    * 页面相关事件处理函数--监听用户下拉动作
    */
   onPullDownRefresh() {
-    console.log("adapter.onPullDownRefresh");
 
   },
 
@@ -117,7 +109,6 @@ Page({
    * 页面上拉触底事件的处理函数
    */
   onReachBottom() {
-    console.log("adapter.onReachBottom");
 
   },
 
@@ -125,46 +116,32 @@ Page({
    * 用户点击右上角分享
    */
   onShareAppMessage(opts): WechatMiniprogram.Page.ICustomShareContent {
-    console.log(`adapter.onShareAppMessage: ${opts}`);
-
+    console.log(opts.target);
     return {};
   },
 
-  onTapSSID() {
-    console.log("adapter.onTapSSID");
-
+  async onTapSSID() {
+    const option: WechatMiniprogram.NavigateToOption = { url: "../wifi/wifi" };
+    const res = await wx.navigateTo(option);
+    const channel = res.eventChannel;
     const ssid = this.data.newer.ssid;
-    const option: WechatMiniprogram.NavigateToOption = {
-      url: "../wifi/wifi",
-      success: res => {
-        console.log(`adapter.onTapSSID: 导航成功: ${res.errMsg}`);
-
-        const channel = res.eventChannel;
-        channel.emit("ssid", ssid);
-      },
-      fail: res => console.log(`adapter.onTapSSID: 导航失败: ${res.errMsg}`)
-    };
-    wx.navigateTo(option);
+    channel.emit("ssid", ssid);
   },
 
-  onValuesChange(e: Record<string, any>) {
-    console.log(`adapter.onValuesChange: ${e}`);
-
+  onValuesChange(e: WX.IAnyObject) {
     const key = e.currentTarget.dataset.key;
     const value = e.detail.value;
-    const data: Record<string, any> = {};
+    const data: WX.IAnyObject = {};
     data[`newer.${key}`] = value;
     this.setData(data);
   },
 
-  onIPModeChange(e: Record<string, any>) {
-    console.log(`adapter.onIPModeChange: ${JSON.stringify(e)}`);
-
+  onIPModeChange(e: WX.IAnyObject) {
     const number = parseInt(e.detail.value);
     if (number === this.data.number0) {
       return;
     }
-    const data: Record<string, any> = {};
+    const data: WX.IAnyObject = {};
     const mode = number === 0 ? Mode.Auto : Mode.Manual;
     data["newer.ip.mode"] = mode;
     data["number0"] = number;
@@ -180,36 +157,30 @@ Page({
     this.setData(data);
   },
 
-  onIPValuesChange(e: Record<string, any>) {
-    console.log(`adapter.onIPValuesChange: ${e}`);
-
+  onIPValuesChange(e: WX.IAnyObject) {
     const key = e.currentTarget.dataset.key;
     const value = e.detail.value;
-    const data: Record<string, any> = {};
+    const data: WX.IAnyObject = {};
     data[`newer.ip.${key}`] = value;
     this.setData(data);
   },
 
-  onDNSModeChange(e: Record<string, any>) {
-    console.log(`adapter.onDNSModeChange: ${e}`);
-
+  onDNSModeChange(e: WX.IAnyObject) {
     const number = parseInt(e.detail.value);
     if (number === this.data.number1) {
       return;
     }
-    const data: Record<string, any> = {};
+    const data: WX.IAnyObject = {};
     const mode = number === 0 ? Mode.Auto : Mode.Manual;
     data["newer.dns.mode"] = mode;
     data["number1"] = number;
     this.setData(data);
   },
 
-  onDNSValuesChange(e: Record<string, any>) {
-    console.log(`adapter.onDNSValuesChange: ${e}`);
-
+  onDNSValuesChange(e: WX.IAnyObject) {
     const key = e.currentTarget.dataset.key;
     const value = e.detail.value;
-    const data: Record<string, any> = {};
+    const data: WX.IAnyObject = {};
     if (key === "dns1") {
       data["newer.dns.values[0]"] = value;
     } else {
@@ -219,15 +190,13 @@ Page({
   },
 
   setSSID(ssid: string) {
-    const data: Record<string, any> = {};
+    const data: WX.IAnyObject = {};
     data["newer.ssid"] = ssid;
     this.setData(data);
   },
 
-  onSubmit() {
+  async onSubmit() {
     const changed = this.changed();
-    console.log(`adapter.onSubmit: ${changed} - ${JSON.stringify(this.data.older)} - ${JSON.stringify(this.data.newer)}`);
-
     if (!changed) {
       return;
     }
@@ -244,7 +213,7 @@ Page({
     };
     const data = { modify: modify };
     page.setData(data);
-    this.navigateBack();
+    await wx.navigateBack();
   },
 
   changed(): boolean {
@@ -271,13 +240,5 @@ Page({
       }
     }
     return changed;
-  },
-
-  navigateBack() {
-    const option: WechatMiniprogram.NavigateBackOption = {
-      success: res => console.log(`adapter.navigateBack 成功: ${res.errMsg}`),
-      fail: res => console.log(`adapter.navigateBack 失败: ${res.errMsg}`)
-    };
-    wx.navigateBack(option);
   }
 })

@@ -5,7 +5,6 @@ import { serviceId, notifyCharacteristicId, writeCharacteristicId } from "../../
 import WX = WechatMiniprogram;
 
 const endSymbol = "\r\n";
-
 const device: WX.CallbackResultBlueToothDevice = {
   advertisData: new ArrayBuffer(0),
   advertisServiceUUIDs: [],
@@ -38,6 +37,7 @@ Page({
   unload: false,
   refreshing: false,
   buffer: new ArrayBuffer(0),
+  writing: false,
 
   /**
    * 页面的初始数据
@@ -60,12 +60,12 @@ Page({
     channel.on("device", device => this.onLoadDevice(device));
   },
 
-  onLoadDevice(device: WX.CallbackResultBlueToothDevice) {
-    this.setNavigationBarTitle(device.localName);
+  async onLoadDevice(device: WX.CallbackResultBlueToothDevice) {
     const data: WX.IAnyObject = {};
     data["device"] = device;
     this.setData(data);
-    this.connect();
+    await this.setNavigationBarTitle(device.localName);
+    await this.connect();
   },
 
   /**
@@ -78,12 +78,12 @@ Page({
   /**
    * 生命周期函数--监听页面显示
    */
-  onShow() {
+  async onShow() {
     this.hide = false;
     if (!this.data.connected) {
-      this.connect();
+      await this.connect();
     } else if (this.data.modify.name !== "") {
-      this.modify();
+      await this.modify();
     }
   },
 
@@ -97,20 +97,20 @@ Page({
   /**
    * 生命周期函数--监听页面卸载
    */
-  onUnload() {
+  async onUnload() {
     this.unload = true;
-    this.disconnect();
+    await this.disconnect();
   },
 
   /**
    * 页面相关事件处理函数--监听用户下拉动作
    */
-  onPullDownRefresh() {
+  async onPullDownRefresh() {
+    this.refreshing = true;
     const data: WX.IAnyObject = {};
     data["adapters"] = adapters;
     this.setData(data);
-    this.getAdapters();
-    this.refreshing = true;
+    await this.getAdapters();
   },
 
   /**
@@ -128,7 +128,7 @@ Page({
     return {};
   },
 
-  onTapAdapter(e: WX.IAnyObject) {
+  async onTapAdapter(e: WX.IAnyObject) {
     const number = e.currentTarget.id;
     const adapter = this.data.adapters[number];
     // 有线网络未连接时不允许修改
@@ -136,12 +136,12 @@ Page({
       return;
     }
     const option: WX.NavigateToOption = { url: "../adapter/adapter" };
-    wx.navigateTo(option)
-      .then(res => res.eventChannel.emit("adapter", adapter))
-      .catch(err => console.error(`device.onTapAdapter: ${JSON.stringify(err)}`));
+    const res = await wx.navigateTo(option);
+    const channel = res.eventChannel;
+    channel.emit("adapter", adapter);
   },
 
-  onConnectionStateChange(res: WX.OnBLEConnectionStateChangeCallbackResult) {
+  async onConnectionStateChange(res: WX.OnBLEConnectionStateChangeCallbackResult) {
     const device = this.data.device;
     if (res.deviceId !== device.deviceId) {
       return;
@@ -152,50 +152,43 @@ Page({
     if (res.connected) {
       // 获取服务
       const option1: WX.GetBLEDeviceServicesOption = { deviceId: device.deviceId };
-      wx.getBLEDeviceServices(option1)
-        .then(() => {
-          // 获取特征值
-          const option2: WX.GetBLEDeviceCharacteristicsOption = {
-            deviceId: device.deviceId,
-            serviceId: serviceId
-          };
-          return wx.getBLEDeviceCharacteristics(option2);
-        })
-        .then(() => {
-          // 打开通知
-          const option3: WX.NotifyBLECharacteristicValueChangeOption = {
-            deviceId: device.deviceId,
-            serviceId: serviceId,
-            characteristicId: notifyCharacteristicId,
-            state: true
-          };
-          return wx.notifyBLECharacteristicValueChange(option3);
-        })
-        .then(() => {
-          this.hideLoading();
-          // 开始心跳
-          this.keepAlive();
-          if (this.data.adapters.length === 0) {
-            this.getAdapters();
-          } else if (this.data.modify.name === "") {
-            const names = this.data.adapters.map(a => a.name);
-            this.getStatus(names);
-          } else {
-            this.modify();
-          }
-        })
-        .catch(err => console.error(`device.onConnectionStateChange: ${JSON.stringify(err)}`));
+      await wx.getBLEDeviceServices(option1);
+      // 获取特征值
+      const option2: WX.GetBLEDeviceCharacteristicsOption = {
+        deviceId: device.deviceId,
+        serviceId: serviceId
+      };
+      await wx.getBLEDeviceCharacteristics(option2);
+      // 打开通知
+      const option3: WX.NotifyBLECharacteristicValueChangeOption = {
+        deviceId: device.deviceId,
+        serviceId: serviceId,
+        characteristicId: notifyCharacteristicId,
+        state: true
+      };
+      await wx.notifyBLECharacteristicValueChange(option3);
+      this.hideLoading();
+      // 开始心跳
+      this.keepAlive();
+      if (this.data.adapters.length === 0) {
+        await this.getAdapters();
+      } else if (this.data.modify.name === "") {
+        const names = this.data.adapters.map(a => a.name);
+        await this.getStatus(names);
+      } else {
+        await this.modify();
+      }
     } else {
       // 停止心跳
       clearInterval(this.intervalID);
       // 断线重连
       if (!this.hide && !this.unload) {
-        this.connect();
+        await this.connect();
       }
     }
   },
 
-  onCharacteristicValueChange(res: WX.OnBLECharacteristicValueChangeCallbackResult) {
+  async onCharacteristicValueChange(res: WX.OnBLECharacteristicValueChangeCallbackResult) {
     const device = this.data.device;
     if (res.deviceId !== device.deviceId || res.serviceId !== serviceId || res.characteristicId !== notifyCharacteristicId) {
       return;
@@ -225,11 +218,12 @@ Page({
     console.debug(`device.onCharacteristicValueChange 收到回复: ${str}`);
 
     const answer: Answer = JSON.parse(str);
-    this.dealWithAnswer(answer);
     this.buffer = new ArrayBuffer(0);
+
+    await this.dealWithAnswer(answer);
   },
 
-  dealWithAnswer(answer: Answer) {
+  async dealWithAnswer(answer: Answer) {
     this.hideLoading();
     if (answer.errCode !== 0) {
       if (this.refreshing) {
@@ -246,7 +240,7 @@ Page({
         data["adapters"] = adapters;
         this.setData(data);
         const names = adapters.map(i => i.name);
-        this.getStatus(names);
+        await this.getStatus(names);
         break;
       }
       case Command.GetStatus: {
@@ -273,13 +267,13 @@ Page({
           }
         });
         if (this.refreshing) {
-          this.stopPullDownRefresh();
+          await this.stopPullDownRefresh();
         }
         break;
       }
       case Command.Modify: {
         const names = [answer.name];
-        this.getStatus(names);
+        await this.getStatus(names);
         break;
       }
       default: {
@@ -288,33 +282,58 @@ Page({
     }
   },
 
-  connect() {
+  async connect() {
+    await this.showLoading("正在连接");
     const device = this.data.device;
     const option: WX.CreateBLEConnectionOption = { deviceId: device.deviceId };
-    wx.createBLEConnection(option)
-      .catch(err => console.error(`device.connect: ${JSON.stringify(err)}`));
-    this.showLoading("正在连接");
+    await wx.createBLEConnection(option);
   },
 
-  disconnect() {
+  async disconnect() {
     const device = this.data.device;
     const option: WX.CloseBLEConnectionOption = { deviceId: device.deviceId };
-    wx.closeBLEConnection(option)
-      .catch(err => console.error(`device.disconnect: ${JSON.stringify(err)}`));
+    await wx.closeBLEConnection(option);
   },
 
-  write(ask: Ask) {
-    const str = `${JSON.stringify(ask)}${endSymbol}`;
+  async write(ask: Ask) {
+    if (this.writing) {
+      // 等待
+      setTimeout(() => this.write(ask), 500);
+      return;
+    }
+    this.writing = true;
+    // 不可以同时写，使用队列暂存
     const device = this.data.device;
-    const codes = Encodings.UTF8.toBytes(str);
-    const option2: WX.WriteBLECharacteristicValueOption = {
-      deviceId: device.deviceId,
-      serviceId: serviceId,
-      characteristicId: writeCharacteristicId,
-      value: codes.buffer
-    };
-    wx.writeBLECharacteristicValue(option2)
-      .catch(err => console.error(`device.write: ${JSON.stringify(err)}`));
+    const mtu = 20;   // 20 字节分包
+    const str = `${JSON.stringify(ask)}${endSymbol}`;
+    const buffer = Encodings.UTF8.toBytes(str).buffer;
+    const count = buffer.byteLength / mtu;
+    const remainder = buffer.byteLength % mtu;
+    for (let i = 0; i < count; i++) {
+      const begin = i * mtu;
+      const end = begin + mtu;
+      const value = buffer.slice(begin, end);
+      const option: WX.WriteBLECharacteristicValueOption = {
+        deviceId: device.deviceId,
+        serviceId: serviceId,
+        characteristicId: writeCharacteristicId,
+        value: value
+      };
+      await wx.writeBLECharacteristicValue(option);
+    }
+    if (remainder > 0) {
+      const begin = count * mtu;
+      const end = begin + remainder;
+      const value = buffer.slice(begin, end);
+      const option: WX.WriteBLECharacteristicValueOption = {
+        deviceId: device.deviceId,
+        serviceId: serviceId,
+        characteristicId: writeCharacteristicId,
+        value: value
+      };
+      await wx.writeBLECharacteristicValue(option);
+    }
+    this.writing = false;
   },
 
   keepAlive() {
@@ -322,22 +341,31 @@ Page({
     this.intervalID = setInterval(() => this.write(ask), 20 * 1000);
   },
 
-  getAdapters() {
-    const ask: Ask = { cmd: Command.GetAdapters };
-    this.write(ask);
-    this.showLoading("获取适配器列表");
+  killSelf() {
+    clearInterval(this.intervalID);
   },
 
-  getStatus(names: string[]) {
+  async getAdapters() {
+    await this.showLoading("获取适配器列表");
+    const ask: Ask = { cmd: Command.GetAdapters };
+    await this.write(ask);
+  },
+
+  async getStatus(names: string[]) {
+    await this.showLoading("获取适配器状态");
     const ask: Ask = {
       cmd: Command.GetStatus,
       names: names
     };
-    this.write(ask);
-    this.showLoading("获取适配器状态");
+    await this.write(ask);
   },
 
-  modify() {
+  async modify() {
+    await this.showLoading("正在配置...");
+    // 重置 modify
+    const data: WX.IAnyObject = {};
+    data["modify"] = modify;
+    this.setData(data);
     const ask: Ask = {
       cmd: Command.Modify,
       name: this.data.modify.name,
@@ -346,45 +374,35 @@ Page({
       ip: this.data.modify.ip,
       dns: this.data.modify.dns
     };
-    this.write(ask);
-    this.showLoading("正在配置...");
-    // 重置 modify
-    const data: WX.IAnyObject = {};
-    data["modify"] = modify;
-    this.setData(data);
+    await this.write(ask);
   },
 
-  showLoading(title: string) {
+  async showLoading(title: string) {
     const option: WX.ShowLoadingOption = {
       title: title,
       mask: true
     };
-    wx.showLoading(option)
-      .catch(err => console.error(`device.showLoading: ${JSON.stringify(err)}`));
+    await wx.showLoading(option);
   },
 
-  hideLoading() {
-    wx.hideLoading({})
-      .catch(err => console.error(`device.hideLoading: ${JSON.stringify(err)}`));
+  async hideLoading() {
+    await wx.hideLoading({});
   },
 
-  showToast(title: string, image?: string) {
+  async showToast(title: string, image?: string) {
     const option: WX.ShowToastOption = {
       title: title,
       image: image
     };
-    wx.showToast(option)
-      .catch(err => console.error(`device.showToast: ${JSON.stringify(err)}`));
+    await wx.showToast(option);
   },
 
-  setNavigationBarTitle(title: string) {
+  async setNavigationBarTitle(title: string) {
     const option: WX.SetNavigationBarTitleOption = { title: title };
-    wx.setNavigationBarTitle(option)
-      .catch(err => console.error(`device.setNavigationBarTitle: ${JSON.stringify(err)}`));
+    await wx.setNavigationBarTitle(option);
   },
 
-  stopPullDownRefresh() {
-    wx.stopPullDownRefresh()
-      .catch(err => console.error(`device.stopPullDownRefresh: ${JSON.stringify(err)}`));
+  async stopPullDownRefresh() {
+    await wx.stopPullDownRefresh();
   }
 });
