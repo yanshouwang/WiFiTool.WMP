@@ -22,8 +22,14 @@ Page({
     // 打开 WiFi 模块
     await wx.startWifi();
     // 获取已连接 WiFi
-    await this.getConnectedWiFi();
-    // 获取系统 WiFi 列表
+    try {
+      await this.getConnectedWiFi();
+    } catch (error) {     
+      // 手机未连接 WiFi 时会报错，Catch 掉，否则无法继续获取 WiFi 列表
+      const str = JSON.stringify(error);
+      console.debug(str);
+    }
+    // 获取 WiFi 列表
     await this.getSystemWiFiList();
   },
 
@@ -117,15 +123,10 @@ Page({
   },
 
   async getConnectedWiFi() {
-    try {
-      const res = await wx.getConnectedWifi();
-      const data: WX.IAnyObject = {};
-      data["wifis[0]"] = res.wifi;
-      this.setData(data);
-    } catch (error) {
-      const str = JSON.stringify(error);
-      console.debug(str);
-    }
+    const res = await wx.getConnectedWifi();
+    const data: WX.IAnyObject = {};
+    data["wifis[0]"] = res.wifi;
+    this.setData(data);
   },
 
   async getSystemWiFiList() {
