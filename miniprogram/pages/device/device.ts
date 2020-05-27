@@ -210,16 +210,15 @@ Page({
     }
     const codes = new Uint8Array(this.buffer);
     const code1 = codes[codes.length - 2];
-    const code2 = codes[codes.length - 1];;
+    const code2 = codes[codes.length - 1];
     if (code1 !== 0x0D || code2 !== 0x0A) {
       return;
     }
-    const str: string = Encodings.UTF8.toString(codes).trim();
-    console.debug(`device.onCharacteristicValueChange 收到回复: ${str}`);
+    const str = Encodings.UTF8.toString(codes).trim();
+    this.buffer = new ArrayBuffer(0);
+    console.debug(`device.onCharacteristicValueChange: ${str}`);
 
     const answer: Answer = JSON.parse(str);
-    this.buffer = new ArrayBuffer(0);
-
     await this.dealWithAnswer(answer);
   },
 
@@ -305,9 +304,11 @@ Page({
     // 不可以同时写，使用队列暂存
     const device = this.data.device;
     const mtu = 20;   // 20 字节分包
-    const str = `${JSON.stringify(ask)}${endSymbol}`;
-    const buffer = Encodings.UTF8.toBytes(str).buffer;
-    const count = buffer.byteLength / mtu;
+    const str = JSON.stringify(ask);
+    console.debug(`device.write: ${str}`);
+
+    const buffer = Encodings.UTF8.toBytes(`${str}${endSymbol}`).buffer;
+    const count = Math.floor(buffer.byteLength / mtu);
     const remainder = buffer.byteLength % mtu;
     for (let i = 0; i < count; i++) {
       const begin = i * mtu;

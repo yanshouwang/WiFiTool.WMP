@@ -117,10 +117,15 @@ Page({
   },
 
   async getConnectedWiFi() {
-    const res = await wx.getConnectedWifi();
-    const data: WX.IAnyObject = {};
-    data["wifis[0]"] = res.wifi;
-    this.setData(data);
+    try {
+      const res = await wx.getConnectedWifi();
+      const data: WX.IAnyObject = {};
+      data["wifis[0]"] = res.wifi;
+      this.setData(data);
+    } catch (error) {
+      const str = JSON.stringify(error);
+      console.debug(str);
+    }
   },
 
   async getSystemWiFiList() {
