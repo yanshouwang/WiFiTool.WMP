@@ -363,10 +363,6 @@ Page({
 
   async modify() {
     await this.showLoading("正在配置...");
-    // 重置 modify
-    const data: WX.IAnyObject = {};
-    data["modify"] = modify;
-    this.setData(data);
     const ask: Ask = {
       cmd: Command.Modify,
       name: this.data.modify.name,
@@ -376,6 +372,10 @@ Page({
       dns: this.data.modify.dns
     };
     await this.write(ask);
+    // 重置 modify
+    const data: WX.IAnyObject = {};
+    data["modify"] = modify;
+    this.setData(data);
   },
 
   async showLoading(title: string) {
